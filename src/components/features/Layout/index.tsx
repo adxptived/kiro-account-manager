@@ -1,12 +1,13 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getVersion } from '@tauri-apps/api/app'
-import { User, Sun, Moon, Palette, LucideIcon } from 'lucide-react'
+import { User, Sun, Moon, Palette, LucideIcon, Languages } from 'lucide-react'
 import { Button } from '../../ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip'
 import { cn } from '../../../lib/utils'
 import { useApp } from '../../../hooks/useApp'
 import { routes } from '../../../routes'
+import i18n from '../../../i18n'
 
 interface SidebarProps {
   activeMenu: string;
@@ -33,8 +34,15 @@ function Sidebar({ activeMenu, onMenuChange }: SidebarProps) {
   const [localToken, setLocalToken] = useState<LocalToken | null>(null)
   const [version, setVersion] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-  const { t, theme, setTheme } = useApp()
+  const { t, theme, setTheme, updateSettings } = useApp()
   const menuItems = useMenuItems()
+  const languages = ['zh-CN', 'en', 'ru']
+  const languageLabels: Record<string, string> = {
+    'zh-CN': '中文',
+    'en': 'English',
+    'ru': 'Русский'
+  }
+  const currentLanguage = i18n.language
 
   useEffect(() => {
     invoke<LocalToken>('get_kiro_local_token').then(setLocalToken).catch(() => {})
@@ -73,6 +81,15 @@ function Sidebar({ activeMenu, onMenuChange }: SidebarProps) {
     const currentIndex = themeOrder.indexOf(theme)
     const nextIndex = (currentIndex + 1) % themeOrder.length
     setTheme(themeOrder[nextIndex])
+  }
+
+  const handleLanguageChange = async () => {
+    const currentIndex = languages.indexOf(currentLanguage)
+    const nextIndex = (currentIndex + 1) % languages.length
+    const nextLanguage = languages[nextIndex]
+    await i18n.changeLanguage(nextLanguage)
+    localStorage.setItem('language', nextLanguage)
+    await updateSettings({ locale: nextLanguage })
   }
 
   return (
@@ -202,6 +219,24 @@ function Sidebar({ activeMenu, onMenuChange }: SidebarProps) {
             </TooltipTrigger>
             <TooltipContent side={collapsed ? "right" : "top"}>
               {t(`theme.${theme}`)}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLanguageChange}
+                className="sidebar-card sidebar-foreground sidebar-hover"
+              >
+                <Languages size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={collapsed ? "right" : "top"}>
+              {languageLabels[currentLanguage] || currentLanguage}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

@@ -57,7 +57,7 @@ const AccountCard = memo(function AccountCard({
   onContextMenuOpen,
   index = 0
 }: AccountCardProps) {
-  const { t } = useApp()
+  const { t, i18n } = useApp()
   const { maskEmail } = usePrivacy()
 
   const isSelected = selectedIdsSet?.has(account.id) ?? false
@@ -200,11 +200,11 @@ const AccountCard = memo(function AccountCard({
           </div>
           <div className="flex items-center justify-between text-[10px] font-medium">
             <span className="text-foreground">{formatUsage(used)} / {formatUsage(quota)}</span>
-            <span className="text-muted-foreground">剩余 {formatUsage(Math.max(0, quota - used))}</span>
+            <span className="text-muted-foreground">{t('accounts.remaining')} {formatUsage(Math.max(0, quota - used))}</span>
           </div>
           {breakdown?.currentOverages != null && breakdown.currentOverages > 0 && (
             <div className="flex items-center justify-between text-[10px] pt-2 mt-2 border-t border-border/30">
-              <span className="text-orange-500 font-medium">⚡ 超额: {formatUsage(breakdown.currentOverages)}</span>
+              <span className="text-orange-500 font-medium">⚡ {t('accounts.overage')}: {formatUsage(breakdown.currentOverages)}</span>
               {breakdown.overageCharges != null && (
                 <span className="text-orange-500 font-bold">${breakdown.overageCharges.toFixed(2)}</span>
               )}
@@ -214,12 +214,12 @@ const AccountCard = memo(function AccountCard({
             <div className="flex items-center justify-between text-[10px] pt-2 mt-2 border-t border-border/30 gap-2">
               {account.expiresAt && (
                 <span className={`flex items-center gap-1 ${cardData.isExpired ? 'text-red-500 font-bold bg-red-500/10 px-1.5 py-0.5 rounded' : 'text-muted-foreground'}`}>
-                  {cardData.isExpired && '⚠️ '}Token: {new Date(account.expiresAt.replace(/\//g, '-')).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {cardData.isExpired && '⚠️ '}Token: {new Date(account.expiresAt.replace(/\//g, '-')).toLocaleDateString(i18n.language, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
               {nextDateReset && (
                 <span className="text-muted-foreground whitespace-nowrap">
-                  {new Date(nextDateReset * 1000).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}重置
+                  {new Date(nextDateReset * 1000).toLocaleDateString(i18n.language, { month: '2-digit', day: '2-digit' })} {t('accounts.reset')}
                 </span>
               )}
             </div>

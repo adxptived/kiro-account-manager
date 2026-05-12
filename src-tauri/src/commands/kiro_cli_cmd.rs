@@ -60,10 +60,10 @@ fn create_account_label(
     existing_account: Option<&Account>,
 ) -> String {
     if is_new {
-        format!("从 kiro-cli 导入 ({token_key})")
+        format!("kiro-cli:import:{token_key}")
     } else {
         existing_account.map_or_else(
-            || format!("从 kiro-cli 导入 ({token_key})"),
+            || format!("kiro-cli:import:{token_key}"),
             |a| a.label.clone(),
         )
     }

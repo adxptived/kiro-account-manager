@@ -13,6 +13,14 @@ pub const TRAY_ICON_ID: &str = "main-tray";
 const TRAY_SHOW_ID: &str = "tray-show";
 const TRAY_EXIT_ID: &str = "tray-exit";
 
+fn tray_labels(locale: Option<&str>) -> (&'static str, &'static str) {
+    match locale.unwrap_or("zh-CN") {
+        "ru" => ("Открыть Kiro Account Manager", "Выйти"),
+        "en" => ("Open Kiro Account Manager", "Quit"),
+        _ => ("显示窗口", "退出应用"),
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrayMenuAction {
     ShowMainWindow,
@@ -72,9 +80,14 @@ fn handle_tray_icon_event<R: Runtime>(tray: &TrayIcon<R>, event: TrayIconEvent) 
 }
 
 pub fn create_tray_icon<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<TrayIcon<R>> {
-    let show_item = MenuItem::with_id(app, TRAY_SHOW_ID, "显示窗口", true, None::<&str>)?;
+    let locale = crate::commands::app_settings_cmd::get_app_settings_inner()
+        .ok()
+        .and_then(|settings| settings.locale)
+        .unwrap_or_else(|| "zh-CN".to_string());
+    let (show_label, exit_label) = tray_labels(Some(locale.as_str()));
+    let show_item = MenuItem::with_id(app, TRAY_SHOW_ID, show_label, true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let exit_item = MenuItem::with_id(app, TRAY_EXIT_ID, "退出应用", true, None::<&str>)?;
+    let exit_item = MenuItem::with_id(app, TRAY_EXIT_ID, exit_label, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_item, &separator, &exit_item])?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ICON_ID)
@@ -92,6 +105,24 @@ pub fn create_tray_icon<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<TrayIco
 
 pub fn handle_window_event<R: Runtime>(_window: &Window<R>, event: &WindowEvent) {
     let _ = (_window, event);
+}
+
+#[tauri::command]
+pub async fn set_tray_locale(app: AppHandle, locale: String) -> Result<(), String> {
+    let (show_label, exit_label) = tray_labels(Some(locale.as_str()));
+    let show_item = MenuItem::with_id(&app, TRAY_SHOW_ID, show_label, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let separator = PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?;
+    let exit_item = MenuItem::with_id(&app, TRAY_EXIT_ID, exit_label, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&show_item, &separator, &exit_item])
+        .map_err(|e| e.to_string())?;
+
+    if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
+        tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

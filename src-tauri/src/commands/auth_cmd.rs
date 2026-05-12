@@ -212,7 +212,7 @@ async fn login_social(
         existing.status = calc_status(usage_result.is_banned, usage_result.is_auth_error);
         existing.clone()
     } else {
-        let mut account = Account::new(final_email.clone(), format!("Kiro {provider_id} 账号"));
+        let mut account = Account::new(final_email.clone(), format!("kiro:{provider_id}:account"));
         account.access_token = Some(token_result.access_token.clone());
         account.refresh_token = Some(token_result.refresh_token.clone());
         account.profile_arn = token_result.profile_arn.clone();
@@ -302,7 +302,7 @@ async fn login_idc(
         existing.status = calc_status(usage_result.is_banned, usage_result.is_auth_error);
         existing.clone()
     } else {
-        let mut account = Account::new(final_email.clone(), format!("Kiro {provider_id} 账号"));
+        let mut account = Account::new(final_email.clone(), format!("kiro:{provider_id}:account"));
         account.access_token = Some(auth_result.access_token.clone());
         account.refresh_token = Some(auth_result.refresh_token.clone());
         account.provider = Some(provider_id.clone());
@@ -426,7 +426,7 @@ pub async fn handle_kiro_social_callback(
     } else {
         let mut account = Account::new(
             final_email.clone(),
-            format!("Kiro {} 账号", pending.provider),
+            format!("kiro:{}:account", pending.provider),
         );
         account.access_token = Some(token_response.access_token.clone());
         account.refresh_token = Some(token_response.refresh_token.clone());

@@ -127,7 +127,7 @@ function Login({ onLogin }: LoginProps) {
 
   const getLoginErrorMessage = (e: any) => {
     const rawMessage = typeof e === 'string' ? e : e?.message || t('login.failed')
-    if (rawMessage.includes('登录已取消') || rawMessage.toLowerCase().includes('cancel')) {
+    if (rawMessage.toLowerCase().includes('cancel')) {
       return t('login.cancelled')
     }
     return rawMessage
@@ -380,7 +380,7 @@ function Login({ onLogin }: LoginProps) {
               <Button
                 onClick={handleEnterpriseLogin}
               >
-                继续
+                {t('login.continue')}
               </Button>
             </div>
           </div>

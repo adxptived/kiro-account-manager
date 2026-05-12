@@ -23,7 +23,7 @@ use core::account::{AccountStore, GroupTagStore};
 use auth::AuthState;
 use state::AppState;
 use std::sync::Mutex;
-use tauri::Listener;
+use tauri::{Listener, Manager};
 use services::session_storage::SessionStorage;
 
 // 导入命令
@@ -251,18 +251,34 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn tray_labels(locale: Option<&str>) -> (&'static str, &'static str) {
+    match locale.unwrap_or("zh-CN") {
+        "ru" => ("Открыть Kiro Account Manager", "Выйти"),
+        "en" => ("Open Kiro Account Manager", "Quit"),
+        _ => ("显示主窗口", "退出"),
+    }
+}
+
+fn build_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: Option<&str>) -> tauri::Result<tauri::menu::Menu<R>> {
+    use tauri::menu::{Menu, MenuItem};
+
+    let (show_label, quit_label) = tray_labels(locale);
+    let show_item = MenuItem::with_id(app, "show", show_label, true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    Menu::with_items(app, &[&show_item, &quit_item])
+}
+
 /// 创建系统托盘
 fn setup_system_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     use tauri::{
-        menu::{Menu, MenuItem},
         tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-        Manager,
     };
 
-    let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
-    let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-
-    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+    let locale = commands::app_settings_cmd::get_app_settings_inner()
+        .ok()
+        .and_then(|settings| settings.locale)
+        .unwrap_or_else(|| "zh-CN".to_string());
+    let menu = build_tray_menu(&app.handle().clone(), Some(locale.as_str()))?;
 
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
@@ -294,6 +310,15 @@ fn setup_system_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Err
         })
         .build(app)?;
 
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_tray_locale(app: tauri::AppHandle, locale: String) -> Result<(), String> {
+    let menu = build_tray_menu(&app, Some(locale.as_str())).map_err(|e| e.to_string())?;
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -522,7 +547,8 @@ fn main() {
             write_codex_cli_config,
             // 应用数据目录命令
             get_app_data_dir,
-            open_app_data_dir
+            open_app_data_dir,
+            set_tray_locale
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

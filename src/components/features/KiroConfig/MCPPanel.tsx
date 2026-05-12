@@ -71,7 +71,7 @@ function MCPPanel({ onCountChange, projectDir }: any) {
       const stats = await invoke<any>('get_mcp_tool_stats', { projectDir: projectDir || null })
       setToolCount(stats.estimatedTools)
     } catch (e) {
-      handleUiError('加载 MCP 配置失败', e, { userMessage: '加载 MCP 配置失败' })
+      handleUiError('Failed to load MCP config', e, { userMessage: 'Failed to load MCP config' })
     } finally {
       setLoading(false)
     }
@@ -86,7 +86,7 @@ function MCPPanel({ onCountChange, projectDir }: any) {
       await invoke('toggle_mcp_server', { name, disabled, projectDir: projectDir || null })
     } catch (e) {
       setServers((prev: any) => ({ ...prev, [name]: { ...prev[name], disabled: oldDisabled } }))
-      handleUiError('切换 MCP 状态失败', e, { userMessage: '切换状态失败' })
+      handleUiError(t('mcp.toggleFailedInternal'), e, { userMessage: t('mcp.toggleFailedInternal') })
     }
   }
 
@@ -96,7 +96,7 @@ function MCPPanel({ onCountChange, projectDir }: any) {
       await invoke('delete_mcp_server', { name, projectDir: projectDir || null })
       setServers((prev: any) => { const next = { ...prev }; delete next[name]; return next })
     } catch (e) {
-      handleUiError('删除 MCP 服务失败', e, { userMessage: '删除失败' })
+      handleUiError(t('mcp.deleteFailedInternal'), e, { userMessage: t('mcp.deleteFailedInternal') })
     }
   }
 
@@ -119,10 +119,10 @@ function MCPPanel({ onCountChange, projectDir }: any) {
           </div>
           <div className="flex-1">
             <div className={`text-sm font-medium text-foreground mb-1`}>
-              MCP 工具数量较多
+              Large number of MCP tools
             </div>
             <div className={`text-xs text-muted-foreground leading-relaxed`}>
-              您已配置约 {toolCount} 个 MCP 工具（{serverList.length} 个服务器）。过多的工具可能导致工具选择性能下降和上下文消耗增加。建议禁用不常用的服务器。
+              You have configured about {toolCount} MCP tools ({serverList.length} servers). Too many tools may reduce tool selection performance and increase context usage. Consider disabling unused servers.
             </div>
           </div>
         </div>

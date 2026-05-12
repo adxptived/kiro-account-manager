@@ -154,7 +154,7 @@ const ListRow = memo(function ListRow({
           </span>
         ) : '-'}
         {account.usageData?.usageBreakdownList?.[0]?.freeTrialInfo?.freeTrialExpiry && (
-          <span className="text-orange-500 ml-1" title="试用到期">
+          <span className="text-orange-500 ml-1" title={t('accounts.trialExpiring')}>
             · {new Date(account.usageData.usageBreakdownList[0].freeTrialInfo.freeTrialExpiry * 1000).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
           </span>
         )}
@@ -180,7 +180,7 @@ const ListRow = memo(function ListRow({
           <div className="flex items-center gap-1 flex-wrap">
             {account.tagLinks.slice(0, 3).map(tagLink => {
               const tag = tagMap.get(tagLink.tagId)
-              const tagName = tag?.name || tagLink.tagName || '标签'
+              const tagName = tag?.name || tagLink.tagName || t('accounts.tag')
               const tagColor = tag?.color || '#888888'
               return (
                 <span
@@ -316,24 +316,24 @@ function AccountListView({
           />
           <span className="text-sm text-muted-foreground font-medium">{selectedIds.length > 0 ? `${t('common.selected')} ${selectedIds.length}` : t('common.selectAll')}</span>
         </label>
-        <span className="text-sm text-muted-foreground font-medium">{accounts.length === totalCount ? `共 ${totalCount} 个账号` : `${accounts.length} / ${totalCount} 个账号`}</span>
+        <span className="text-sm text-muted-foreground font-medium">{accounts.length === totalCount ? t('accounts.totalCount', { count: totalCount }) : t('accounts.displayCount', { current: accounts.length, total: totalCount })}</span>
       </div>
 
       <div className="flex items-center gap-3 px-4 py-3 bg-muted/50 border border-border rounded-t-xl text-muted-foreground text-[10px] font-bold uppercase tracking-widest">
         <div className="w-4" />
-        <div className="w-48">邮箱</div>
-        <div className="w-20 text-center">账号类型</div>
-        <div className="w-20 text-center">订阅类型</div>
+        <div className="w-48">{t('accounts.email')}</div>
+        <div className="w-20 text-center">{t('accounts.accountType')}</div>
+        <div className="w-20 text-center">{t('accounts.subscriptionType')}</div>
         <button type="button" onClick={() => handleSort('usage')} className="w-24 text-left hover:text-primary transition-colors">
-          配额<SortIcon field="usage" />
+          {t('accounts.quota')}<SortIcon field="usage" />
         </button>
-        <div className="w-12 text-center">状态</div>
-        <div className="w-14 text-center">机器码</div>
+        <div className="w-12 text-center">{t('accounts.status')}</div>
+        <div className="w-14 text-center">{t('accounts.machineCode')}</div>
         <button type="button" onClick={() => handleSort('trial')} className="w-28 text-left hover:text-primary transition-colors">
-          过期|试用<SortIcon field="trial" />
+          {t('accounts.expiryTrial')}<SortIcon field="trial" />
         </button>
-        <div className="w-16">分组</div>
-        <div className="flex-1">标签</div>
+        <div className="w-16">{t('accounts.group')}</div>
+        <div className="flex-1">{t('accounts.tags')}</div>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-auto border border-t-0 border-border rounded-b-xl glass-card no-scrollbar">

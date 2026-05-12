@@ -115,7 +115,7 @@ export default function AnnouncementModal() {
           {/* 官方开源信息 */}
           {(announcement.websiteUrl || announcement.officialUrl || announcement.qqGroup) && (
             <div className={`mt-5 p-4 rounded-xl bg-muted/30`}>
-              <p className={`text-sm font-medium mb-3 text-foreground`}>相关链接</p>
+              <p className={`text-sm font-medium mb-3 text-foreground`}>Related links</p>
               <div className="flex flex-wrap gap-2">
                 {announcement.websiteUrl && (
                   <a 
@@ -125,7 +125,7 @@ export default function AnnouncementModal() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm hover:opacity-90 transition"
                   >
                     <span>🌐</span>
-                    <span>官网</span>
+                    <span>Website</span>
                   </a>
                 )}
                 {announcement.officialUrl && (
@@ -147,7 +147,7 @@ export default function AnnouncementModal() {
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition hover:bg-muted/50 text-primary`}
                   >
                     <span>📖</span>
-                    <span>教程</span>
+                    <span>Tutorial</span>
                   </a>
                 )}
                 {announcement.qqGroup && (
@@ -158,7 +158,7 @@ export default function AnnouncementModal() {
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition hover:bg-muted/50 text-primary`}
                   >
                     <MessageCircle size={14} />
-                    <span>QQ群</span>
+                    <span>QQ group</span>
                   </a>
                 )}
               </div>
@@ -168,7 +168,7 @@ export default function AnnouncementModal() {
           {/* 续杯交流群 */}
           {announcement.buyGroup && (
             <div className={`mt-3 p-4 rounded-xl bg-muted/30`}>
-              <p className={`text-sm font-medium mb-3 text-foreground`}>账号购买需求：</p>
+              <p className={`text-sm font-medium mb-3 text-foreground`}>Account purchase needs:</p>
               <div className="space-y-2">
                 {announcement.buyUrl && (
                   <a 
@@ -178,7 +178,7 @@ export default function AnnouncementModal() {
                     className="flex items-center gap-2 text-blue-500 hover:text-blue-400 text-sm"
                   >
                     <ExternalLink size={14} className="shrink-0" />
-                    <span>在线购买</span>
+                    <span>Buy online</span>
                   </a>
                 )}
                 {announcement.refillTutorialUrl && (
@@ -189,7 +189,7 @@ export default function AnnouncementModal() {
                     className="flex items-center gap-2 text-blue-500 hover:text-blue-400 text-sm"
                   >
                     <ExternalLink size={14} className="shrink-0" />
-                    <span>Kiro续杯教程</span>
+                    <span>{t('announcement.refillTutorial')}</span>
                   </a>
                 )}
                 <a 
@@ -213,7 +213,7 @@ export default function AnnouncementModal() {
               checked={agreed}
               onCheckedChange={setAgreed}
             />
-            <span className="text-sm">我已阅读并知晓以上内容</span>
+            <span className="text-sm">I have read and understood the above</span>
           </label>
           <div className="flex gap-3">
             <button

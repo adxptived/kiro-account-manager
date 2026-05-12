@@ -9,7 +9,7 @@ export interface RouteConfig {
   component: LazyExoticComponent<ComponentType<any>>;
 }
 
-// 路由配置：菜单项 + 懒加载组件
+// 路由Config：菜单项 + 懒加载组件
 export const routes: RouteConfig[] = [
   { id: 'home', icon: Home, nameKey: 'nav.home', component: lazy(() => import('./components/features/Home/index')) },
   { id: 'accounts', icon: Key, nameKey: 'nav.accounts', component: lazy(() => import('./components/features/AccountManager/index')) },

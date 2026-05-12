@@ -176,8 +176,8 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
     <DialogRoot open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent maxWidth="560px">
         <DialogHeader icon={Edit} iconColor={accent.text} iconBg={accent.iconBadgeBg}>
-          <DialogTitle>批量编辑</DialogTitle>
-          <DialogDescription>{accountIds.length} 个账号</DialogDescription>
+          <DialogTitle>{t('accounts.batchEdit')}</DialogTitle>
+          <DialogDescription>{t('accounts.accountCount', { count: accountIds.length })}</DialogDescription>
         </DialogHeader>
 
         <DialogBody gap="lg">
@@ -185,9 +185,9 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
           <div>
             <label className={`block text-sm font-semibold text-foreground mb-3 flex items-center gap-2`}>
               <Folder size={16} className={accent.text} />
-              分组
+              {t('accounts.group')}
             </label>
-            
+
             {showNewGroupInput ? (
               <div className="flex gap-2">
                 <input
@@ -203,7 +203,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                       setNewGroupName('')
                     }
                   }}
-                  placeholder="输入新分组名..."
+                  placeholder={t('accounts.enterNewGroupName')}
                   autoFocus
                   className={`flex-1 px-4 py-2.5 border-2 rounded-xl text-foreground bg-background border-input ${colors.inputFocus} focus:ring-2 transition-all outline-none`}
                 />
@@ -230,7 +230,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                   onChange={(e) => setSelectedGroupId(e.target.value)}
                   className={`flex-1 px-4 py-2.5 border-2 rounded-xl text-foreground bg-background border-input ${colors.inputFocus} focus:ring-2 transition-all outline-none cursor-pointer`}
                 >
-                  <option value="">无分组</option>
+                  <option value="">{t('accounts.noGroup')}</option>
                   {groups.map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
@@ -239,7 +239,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                   type="button" 
                   onClick={() => setShowNewGroupInput(true)}
                   className={`px-4 py-2.5 ${accent.solidBg} text-white rounded-xl ${accent.solidHoverBg} transition-all cursor-pointer`}
-                  title="创建新分组"
+                  title={t('group.createNew')}
                 >
                   <Plus size={18} />
                 </button>
@@ -248,11 +248,11 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
             
             {selectedGroupId && selectedGroup && (
               <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: selectedGroup.color || '#8b5cf6' }}
                 />
-                已选择：{selectedGroup.name}
+                {t('accounts.selected')}: {selectedGroup.name}
               </div>
             )}
           </div>
@@ -261,13 +261,13 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
           <div>
             <label className={`block text-sm font-semibold text-foreground mb-3 flex items-center gap-2`}>
               <Tag size={16} className={accent.text} />
-              标签
+              {t('accounts.tags')}
             </label>
-            
+
             {/* 已选标签 */}
             <div className="flex flex-wrap gap-2 min-h-[36px] mb-3">
               {selectedTagIds.length === 0 ? (
-                <span className={`text-sm text-muted-foreground`}>未选择标签</span>
+                <span className={`text-sm text-muted-foreground`}>{t('accounts.noTagsSelected')}</span>
               ) : (
                 selectedTagIds.map(tagId => {
                   const tag = tags.find(t => t.id === tagId)
@@ -276,7 +276,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                     <span key={tagId} className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full text-white cursor-pointer hover:opacity-80"
                       style={{ backgroundColor: tag.color || '#8b5cf6' }}
                       onClick={() => handleToggleTag(tagId)}
-                      title="点击移除"
+                      title={t('group.clickToRemove')}
                     >
                       {tag.name}
                       <X size={12} />
@@ -302,7 +302,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                       }
                     }
                   }}
-                  placeholder="搜索或输入新标签..."
+                  placeholder={t('accounts.searchOrEnterNewTag')}
                   className={`w-full px-4 py-2.5 border-2 rounded-xl text-foreground bg-background border-input ${colors.inputFocus} focus:ring-2 transition-all outline-none`}
                 />
                 {/* 搜索建议下拉 */}
@@ -318,7 +318,7 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                     ))}
                     {filteredTags.length === 0 && newTagName.trim() && (
                       <div className={`px-3 py-2 text-sm text-muted-foreground`}>
-                        按回车创建 "{newTagName.trim()}"
+                        {t('accounts.pressEnterToCreate', { name: newTagName.trim() })}
                       </div>
                     )}
                   </div>
@@ -329,13 +329,13 @@ function BatchEditModal({ accountIds, accounts = [], onClose, onSuccess }: Batch
                 onClick={handleAddTag} 
                 disabled={!newTagName.trim()}
                 className={`px-4 py-2.5 ${accent.solidBg} text-white rounded-xl text-sm ${accent.solidHoverBg} disabled:opacity-50 transition-all cursor-pointer`}
-                title="添加标签"
+                title={t('group.addTag')}
               >
                 <Plus size={18} />
               </button>
             </div>
             <p className={`text-xs text-muted-foreground mt-2 leading-relaxed`}>
-              输入搜索已有标签，或直接输入创建新标签
+              {t('accounts.searchOrCreateTagHint')}
             </p>
           </div>
         </DialogBody>

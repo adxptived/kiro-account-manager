@@ -7,7 +7,7 @@ export const getAccountDisplayName = (account) => {
   return getSafeAccountDisplayName(account)
 }
 
-// 智能格式化使用量：整数显示整数，小数保留2位（去掉末尾0）
+// 智能Format使用量：整数显示整数，小数保留2位（去掉末尾0）
 const formatUsage = (value) => {
   if (value == null) return '0'
   if (Number.isInteger(value)) return value.toString()
@@ -19,7 +19,7 @@ const getBreakdown = (a) => {
   return a.usageData?.usageBreakdownList?.[0] || null
 }
 
-// 获取总配额（主配额 + 未过期的试用 + 未过期的奖励）
+// 获取总配额（主配额 + 未Expired的试用 + 未Expired的奖励）
 const getQuota = (a) => {
   if (isUnavailableStatus(a) && !isCappedStatus(a)) return 0
 
@@ -34,7 +34,7 @@ const getQuota = (a) => {
   const trialActive = trialInfo?.freeTrialStatus === 'ACTIVE'
   const freeTrial = trialActive ? (trialInfo?.usageLimit ?? 0) : 0
   
-  // 检查每个奖励配额（只计入未过期且状态为 ACTIVE 的奖励）
+  // 检查每个奖励配额（只计入未Expired且状态为 ACTIVE 的奖励）
   const bonuses = Array.isArray(breakdown.bonuses) ? breakdown.bonuses : []
   let bonus = 0
   bonuses.forEach(b => {
@@ -47,7 +47,7 @@ const getQuota = (a) => {
   return main + freeTrial + bonus
 }
 
-// 获取已使用量（主配额 + 未过期的试用 + 未过期的奖励）
+// 获取已使用量（主配额 + 未Expired的试用 + 未Expired的奖励）
 const getUsed = (a) => {
   if (isUnavailableStatus(a) && !isCappedStatus(a)) return 0
 
@@ -62,7 +62,7 @@ const getUsed = (a) => {
   const trialActive = trialInfo?.freeTrialStatus === 'ACTIVE'
   const freeTrial = trialActive ? (trialInfo?.currentUsage ?? 0) : 0
   
-  // 检查每个奖励配额（只计入未过期且状态为 ACTIVE 的奖励）
+  // 检查每个奖励配额（只计入未Expired且状态为 ACTIVE 的奖励）
   const bonuses = Array.isArray(breakdown.bonuses) ? breakdown.bonuses : []
   let bonus = 0
   bonuses.forEach(b => {
@@ -95,7 +95,7 @@ export function calcAccountStats(accounts) {
   return { 
     total, active, banned, unavailable, proPlus, pro, usagePercent,
     totalQuota, totalUsed, remaining: totalQuota - totalUsed,
-    // 格式化后的显示值
+    // Format后的显示值
     totalQuotaStr: formatUsage(totalQuota),
     totalUsedStr: formatUsage(totalUsed),
     remainingStr: formatUsage(totalQuota - totalUsed)

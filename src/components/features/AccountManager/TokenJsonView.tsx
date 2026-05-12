@@ -1,4 +1,4 @@
-// Token 凭证 JSON 视图组件
+// Token credentials JSON 视图组件
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Copy, Check, ChevronDown, Key, Clock } from 'lucide-react'
 import { useApp } from '../../../hooks/useApp'
@@ -33,7 +33,7 @@ function CollapsibleValue({ value, colors, threshold = 50 }) {
           transition-all duration-200 font-medium
         `}
       >
-        {expanded ? '收起' : `展开 +${value.length - threshold}`}
+        {expanded ? 'Collapse' : `Expand +${value.length - threshold}`}
       </button>
     </span>
   )
@@ -112,13 +112,13 @@ export function TokenJsonView({ account, defaultExpanded = false }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`font-semibold text-foreground`}>{t('detail.tokenCredentials') || 'Token 凭证'}</span>
+              <span className={`font-semibold text-foreground`}>{t('detail.tokenCredentials')}</span>
               <span className={`text-xs px-2 py-0.5 rounded-md info-badge font-medium`}>JSON</span>
             </div>
             {account.expiresAt && (
               <span className={`text-xs text-muted-foreground flex items-center gap-1 mt-1`}>
                 <Clock size={11} />
-                {t('detail.expiresAt') || '过期时间'}: {account.expiresAt}
+                {t('detail.expiresAt')}: {account.expiresAt}
               </span>
             )}
           </div>
@@ -133,7 +133,7 @@ export function TokenJsonView({ account, defaultExpanded = false }) {
           {/* Token JSON */}
           <div className="flex items-center justify-between mb-3">
             <span className={`text-xs font-medium text-muted-foreground`}>
-              {Object.keys(credentialsJson).length} {t('detail.fields') || '个字段'}
+              {Object.keys(credentialsJson).length} {t('detail.fields')}
             </span>
               <button 
                 type="button" 

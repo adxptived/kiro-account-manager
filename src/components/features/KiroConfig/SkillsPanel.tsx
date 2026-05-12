@@ -15,7 +15,7 @@ import {
 import { handleUiError } from '../../../utils/errorLogger'
 import React from 'react'
 
-// 格式化文件大小
+// Format文件大小
 const formatSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`
 
 // 解析 SKILL.md frontmatter（name + description 必填）
@@ -43,13 +43,13 @@ const ScopeBadge = ({ scope, accent }: any) => {
   if (scope === 'project') {
     return (
       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-500 border border-amber-500/30">
-        <FolderOpen size={10} />项目
+        <FolderOpen size={10} />Project
       </span>
     )
   }
   return (
     <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${accent.scopeBadge}`}>
-      <Globe size={10} />用户
+      <Globe size={10} />User
     </span>
   )
 }
@@ -86,7 +86,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
       setSkills(data)
       onCountChange?.(data?.length || 0)
     } catch (e) {
-      handleUiError('加载 Skills 失败', e, { userMessage: t('skills.loadFailed') || '加载 Skills 失败' })
+      handleUiError('Failed to load Skills', e, { userMessage: t('skills.loadFailed') || 'Failed to load Skills' })
     } finally {
       setLoading(false)
     }
@@ -131,7 +131,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
       setSelectedSkill({ ...selectedSkill, content: fullContent })
       setHasChanges(false)
     } catch (e) {
-      handleUiError('保存 Skill 失败', e, { userMessage: t('skills.saveFailed') || '保存失败' })
+      handleUiError(t('skills.saveFailedInternal'), e, { userMessage: t('skills.saveFailed') || t('skills.saveFailedInternal') })
     } finally {
       setSaving(false)
     }
@@ -154,7 +154,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
         setHasChanges(false)
       }
     } catch (e) {
-      handleUiError('删除 Skill 失败', e, { userMessage: t('skills.deleteFailed') || '删除失败' })
+      handleUiError('Failed to delete Skill', e, { userMessage: t('skills.deleteFailed') || 'Delete failed' })
     }
   }
 
@@ -174,7 +174,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
       setShowCreateModal(false)
       handleSelect(newSkill)
     } catch (e) {
-      handleUiError('创建 Skill 失败', e, { userMessage: t('skills.createFailed') || '创建失败' })
+      handleUiError('Failed to create Skill', e, { userMessage: t('skills.createFailed') || 'Create failed' })
     }
   }
 
@@ -217,7 +217,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
       upsertImportedSkill(imported)
       showSuccess(t('skills.importSuccess'), `${imported.name}`)
     } catch (e) {
-      handleUiError('导入本地 Skill 失败', e, { userMessage: t('skills.importFailed') || '导入失败' })
+      handleUiError('Failed to import local Skill', e, { userMessage: t('skills.importFailed') || 'Import failed' })
     }
   }
 
@@ -236,7 +236,7 @@ function SkillsPanel({ onCountChange, projectDir }: any) {
       setShowGithubImportModal(false)
       showSuccess(t('skills.importSuccess'), `${imported.name}`)
     } catch (e) {
-      handleUiError('从 GitHub 导入 Skill 失败', e, { userMessage: t('skills.importGithubFailed') || '导入失败' })
+      handleUiError('Failed to import Skill from GitHub', e, { userMessage: t('skills.importGithubFailed') || 'Import failed' })
     }
   }
 

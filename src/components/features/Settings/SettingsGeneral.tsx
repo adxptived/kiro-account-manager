@@ -1,4 +1,4 @@
-import { Clock, Globe, Search, Shield, Shuffle, AlertTriangle, Eye, EyeOff, Repeat, RefreshCw, Check, Copy, Cpu, X, FolderOpen, ExternalLink } from 'lucide-react'
+import { Clock, Globe, Search, Shield, Shuffle, AlertTriangle, Eye, EyeOff, Repeat, RefreshCw, Check, Copy, Cpu, X, FolderOpen, ExternalLink, Languages } from 'lucide-react'
 import { Card, CardContent } from '../../ui/card'
 import { Input } from '../../ui/input'
 import { Switch } from '../../ui/switch'
@@ -55,6 +55,8 @@ interface SettingsGeneralProps {
   handleAutoSwitchThresholdChange: (value: number) => void;
   handleAutoSwitchIntervalChange: (value: string) => void;
   handleCloseToTrayChange: (checked: boolean) => void;
+  currentLanguage: string;
+  handleLanguageChange: (language: string) => void;
   t: TFunction;
 }
 
@@ -94,6 +96,8 @@ function SettingsGeneral({
   handleAutoSwitchThresholdChange,
   handleAutoSwitchIntervalChange,
   handleCloseToTrayChange,
+  currentLanguage,
+  handleLanguageChange,
   t
 }: SettingsGeneralProps) {
   const accountToggleContainerClass = "bg-card hover:bg-muted/50 border border-border text-foreground"
@@ -138,6 +142,31 @@ function SettingsGeneral({
 
   return (
     <div className="space-y-6">
+      {/* 语言设置 */}
+      <Card className="card-glow animate-slide-in-left delay-100">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1 h-5 bg-primary rounded-full"></div>
+            <Languages size={18} className="text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">{t('settings.language')}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-5">{t('settings.languageDesc')}</p>
+
+          <div className="space-y-3">
+            <Select value={currentLanguage} onValueChange={handleLanguageChange}>
+              <SelectTrigger className="text-foreground bg-background border-border focus:ring-primary/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="zh-CN" className="text-foreground">🇨🇳 {t('language.chinese')}</SelectItem>
+                <SelectItem value="en" className="text-foreground">🇺🇸 {t('language.english')}</SelectItem>
+                <SelectItem value="ru" className="text-foreground">🇷🇺 {t('language.russian')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 账号管理 */}
       <Card className="card-glow animate-slide-in-left delay-200">
         <CardContent className="p-6">
@@ -251,7 +280,7 @@ function SettingsGeneral({
                   {appDataDir || t('common.loading')}
                 </code>
                 {appDataDir && (
-                  <button onClick={() => copyToClipboard(appDataDir, 'appDataDir')} className="p-2 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0" title="复制路径">
+                  <button onClick={() => copyToClipboard(appDataDir, 'appDataDir')} className="p-2 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0" title={t('settings.copyPath')}>
                     {copiedField === 'appDataDir' ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-muted-foreground" />}
                   </button>
                 )}
@@ -277,20 +306,20 @@ function SettingsGeneral({
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-1 h-5 bg-primary rounded-full"></div>
-            <h2 className="text-lg font-semibold text-foreground">关闭窗口行为</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('settings.closeWindowBehavior')}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-5">设置点击关闭按钮时的行为</p>
+          <p className="text-sm text-muted-foreground mb-5">{t('settings.closeWindowBehaviorDesc')}</p>
 
           <div className="space-y-3">
             <label className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border transition-colors ${accountToggleContainerClass}`}>
               <Switch checked={closeToTray} onCheckedChange={handleCloseToTrayChange} />
-              <span className="text-sm font-medium whitespace-nowrap">最小化到托盘</span>
-              <span className="text-xs text-muted-foreground ml-1">(推荐，后台任务继续运行)</span>
+              <span className="text-sm font-medium whitespace-nowrap">{t('settings.minimizeToTray')}</span>
+              <span className="text-xs text-muted-foreground ml-1">{t('settings.minimizeToTrayHint')}</span>
             </label>
             <p className="text-xs text-muted-foreground">
-              {closeToTray 
-                ? '✓ 关闭窗口时最小化到系统托盘，后台任务继续运行。点击托盘图标可重新打开窗口。' 
-                : '✗ 关闭窗口时直接退出应用，所有后台任务将停止。'}
+              {closeToTray
+                ? t('settings.minimizeToTrayEnabled')
+                : t('settings.minimizeToTrayDisabled')}
             </p>
           </div>
         </CardContent>
@@ -439,7 +468,7 @@ function SettingsGeneral({
                   {systemMachineInfo?.machineGuid || t('common.loading')}
                 </code>
                 {systemMachineInfo?.machineGuid && (
-                  <button onClick={() => copyToClipboard(systemMachineInfo.machineGuid, 'sysMachineGuid')} className="p-2 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0" title="复制">
+                  <button onClick={() => copyToClipboard(systemMachineInfo.machineGuid, 'sysMachineGuid')} className="p-2 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0" title={t('settings.copy')}>
                     {copiedField === 'sysMachineGuid' ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-muted-foreground" />}
                   </button>
                 )}

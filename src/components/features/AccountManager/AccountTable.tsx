@@ -142,7 +142,7 @@ function AccountTable({
       { divider: true },
       { icon: Key , label: t('accountCard.refreshQuota'), onClick: () => onRefresh(account.id), disabled: Boolean(rowState.isRefreshing) },
       { icon: KeyRound , label: t('accountCard.refreshToken'), onClick: () => onRefreshToken?.(account.id), disabled: Boolean(rowState.isRefreshingToken) },
-      { icon: LogIn, label: isUnavailable ? `${statusMeta.label}账号不可切换` : t('accountCard.LogIn'), onClick: () => onSwitch(account), disabled: Boolean(rowState.isSwitching) || isUnavailable },
+      { icon: LogIn, label: isUnavailable ? t('accounts.accountCannotSwitch', { status: statusMeta.label }) : t('accountCard.LogIn'), onClick: () => onSwitch(account), disabled: Boolean(rowState.isSwitching) || isUnavailable },
       { icon: Trash2, label: t('accountCard.delete'), onClick: () => onDelete(account.id), danger: true },
     ]
 
@@ -197,7 +197,7 @@ function AccountTable({
             </span>
           </label>
           <span className={`text-sm text-muted-foreground`}>
-            {accounts.length === totalCount ? `共 ${totalCount} 个账号` : `${accounts.length} / ${totalCount} 个账号`}
+            {accounts.length === totalCount ? t('accounts.totalCount', { count: totalCount }) : t('accounts.displayCount', { current: accounts.length, total: totalCount })}
           </span>
         </div>
       )}

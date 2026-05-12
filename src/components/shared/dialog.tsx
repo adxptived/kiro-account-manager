@@ -100,7 +100,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(({
               )}
             >
               <X size={18} className="text-muted-foreground" />
-              <span className="sr-only">关闭</span>
+              <span className="sr-only">Close</span>
             </CloseButton>
           )}
         </DialogPanel>

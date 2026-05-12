@@ -124,7 +124,7 @@ function AccountHeader({
               <h1 className={`text-xl font-bold text-foreground`}>
                 {t('common.selected')} {selectedCount} {t('accounts.title')}
               </h1>
-              <p className={`text-xs text-muted-foreground`}>批量操作模式</p>
+              <p className={`text-xs text-muted-foreground`}>{t('accounts.batchOperationMode')}</p>
             </div>
           </div>
         ) : (
@@ -163,7 +163,7 @@ function AccountHeader({
                           onSearchChange('')
                         }}
                         className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-muted/50 transition-all hover:scale-110 cursor-pointer`}
-                        title="清空"
+                        title={t('common.clear')}
                       >
                         <X size={16} className={"text-muted-foreground"} />
                       </button>
@@ -264,14 +264,14 @@ function AccountHeader({
                 <button
                   onClick={() => onSelectAll()}
                   className={`cursor-pointer p-2.5 rounded-lg glass-card border border-border hover:bg-muted/50 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 ${accent.ring}`}
-                  title="全选"
+                  title={t('common.selectAll')}
                 >
                   <CheckSquare size={16} className={accent.text} />
                 </button>
                 <button
                   onClick={onDeselectAll}
                   className={`cursor-pointer p-2.5 rounded-lg glass-card border border-border hover:bg-muted/50 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 ${accent.ring}`}
-                  title="取消全选"
+                  title={t('common.deselectAll')}
                 >
                   <Square size={16} className={"text-muted-foreground"} />
                 </button>
@@ -279,10 +279,10 @@ function AccountHeader({
               <button
                 onClick={onBatchEdit}
                 className={`px-4 py-2.5 text-sm font-medium rounded-xl flex items-center gap-2 transition-all duration-200 hover:shadow-lg cursor-pointer bg-gradient-to-br ${accent.gradientFrom} ${accent.gradientTo} text-white shadow-md ${accent.shadow}`}
-                title="批量编辑（标签和分组）"
+                title={t('accounts.batchEditTagsAndGroups')}
               >
                 <Edit size={16} />
-                批量编辑 ({selectedCount})
+                {t('accounts.batchEdit')} ({selectedCount})
               </button>
               <button
                 onClick={onBatchDelete}

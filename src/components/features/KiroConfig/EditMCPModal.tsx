@@ -42,16 +42,16 @@ function EditMCPModal({ name, config, onClose, onSuccess, projectDir }: any) {
     try {
       const parsed = JSON.parse(jsonConfig)
       if (!parsed.command) {
-        setParseError('缺少 command 字段')
+        setParseError('Missing command field')
         return
       }
       setParseError('')
     } catch (e) {
-      setParseError('JSON 格式错误')
+      setParseError('Invalid JSON format')
     }
   }, [jsonConfig])
 
-  // 格式化 JSON
+  // Format JSON
   const formatJson = () => {
     try {
       const parsed = JSON.parse(jsonConfig)
@@ -65,7 +65,7 @@ function EditMCPModal({ name, config, onClose, onSuccess, projectDir }: any) {
     try {
       parsed = JSON.parse(jsonConfig)
     } catch (e: any) {
-      setError('JSON 格式错误: ' + e.message)
+      setError('Invalid JSON format: ' + e.message)
       return
     }
 
@@ -119,11 +119,11 @@ function EditMCPModal({ name, config, onClose, onSuccess, projectDir }: any) {
 
         {/* 内容 */}
         <div className="relative flex-1 overflow-auto p-6 space-y-4">
-          {/* JSON 配置 */}
+          {/* JSON Config */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <label className={`text-xs text-muted-foreground`}>配置</label>
+                <label className={`text-xs text-muted-foreground`}>Config</label>
                 {parseError && (
                   <span className="text-xs text-red-500 flex items-center gap-1">
                     <AlertCircle size={12} />
@@ -136,7 +136,7 @@ function EditMCPModal({ name, config, onClose, onSuccess, projectDir }: any) {
                 className={`cursor-pointer text-xs text-muted-foreground ${accent.textHover} flex items-center gap-1 transition-colors`}
               >
                 <Wand2 size={12} />
-                格式化
+                Format
               </button>
             </div>
             <Textarea
@@ -148,7 +148,7 @@ function EditMCPModal({ name, config, onClose, onSuccess, projectDir }: any) {
             />
             <p className={`text-xs text-muted-foreground mt-2 flex items-start gap-1.5`}>
               <span className={`${accent.text} font-medium`}>💡</span>
-              <span>autoApprove 支持通配符 <code className={`px-1.5 py-0.5 ${accent.bgSoft} ${accent.text} rounded`}>["*"]</code> 自动批准该服务器的所有工具</span>
+              <span>autoApprove supports wildcard <code className={`px-1.5 py-0.5 ${accent.bgSoft} ${accent.text} rounded`}>["*"]</code> auto-approve all tools for this server</span>
             </p>
           </div>
 

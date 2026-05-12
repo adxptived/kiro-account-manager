@@ -75,3 +75,17 @@ lto = "thin"         # 保留链接时优化，但避免 fat LTO 的高耗时
 opt-level = "s"      # 优先减小体积，同时避免 z 级别优化带来的额外编译成本
 panic = "abort"      # 禁用 panic 处理器，提升性能
 strip = true         # 移除符号信息，减小体积
+
+# 构建优化配置
+[build]
+# 并行编译优化
+jobs = 4  # 并行任务数（根据CPU核心数调整）
+
+# sccache配置（需要先安装 sccache: cargo install sccache）
+# 设置环境变量: set RUSTC_WRAPPER=sccache
+# [build]
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]  # 使用lld链接器（Windows下更快）
+
+# 依赖优化
+# [dependencies]
+# mimalloc = { version = "0.1", features = ["override"] }  # 更快的内存分配器（可选）

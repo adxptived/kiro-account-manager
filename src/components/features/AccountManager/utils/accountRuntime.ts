@@ -1,3 +1,5 @@
+import i18n from '../../../../i18n'
+
 function pickNonEmptyString(...values) {
   for (const value of values) {
     if (typeof value === 'string') {
@@ -21,14 +23,29 @@ function normalizeTagLinks(tagLinks) {
     .filter(link => link.tagId)
 }
 
+function localizeAccountLabel(label) {
+  const value = pickNonEmptyString(label)
+  const providerMatch = value.match(/^kiro:(.+):account$/) || value.match(/^Kiro\s+(.+?)\s+(?:账号|account)$/i)
+  if (providerMatch) {
+    return i18n.t('accounts.providerAccountLabel', { provider: providerMatch[1] })
+  }
+
+  const cliMatch = value.match(/^kiro-cli:import:(.+)$/) || value.match(/^从 kiro-cli 导入 \((.+)\)$/) || value.match(/^Imported from kiro-cli \((.+)\)$/)
+  if (cliMatch) {
+    return i18n.t('accounts.kiroCliImportedLabel', { tokenKey: cliMatch[1] })
+  }
+
+  return value
+}
+
 export function getSafeAccountDisplayName(account) {
   const normalizedUserId = pickNonEmptyString(account?.userId)
 
   return pickNonEmptyString(
     account?.email,
     normalizedUserId,
-    account?.label,
-  ) || 'Unknown'
+    localizeAccountLabel(account?.label),
+  ) || i18n.t('common.unknown')
 }
 
 export function getSafeAccountInitial(account) {
@@ -42,7 +59,7 @@ export function normalizeAccountForUi(account) {
     ...source,
     email: pickNonEmptyString(source.email),
     userId: pickNonEmptyString(source.userId),
-    label: pickNonEmptyString(source.label),
+    label: localizeAccountLabel(source.label),
     status: pickNonEmptyString(source.status) || 'unknown',
     provider: pickNonEmptyString(source.provider),
     authMethod: pickNonEmptyString(source.authMethod),

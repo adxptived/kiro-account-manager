@@ -153,7 +153,7 @@ function SettingsKiro({
               <p className="text-xs text-muted-foreground mt-1">{t('settings.trustedToolsDesc')}</p>
             </div>
 
-            {/* MCP 配置 */}
+            {/* MCP Config */}
             <div>
               <label className="block text-sm text-muted-foreground mb-1.5">{t('settings.configureMCP')}</label>
               <Select value={configureMcp} onValueChange={handleConfigureMcpChange}>

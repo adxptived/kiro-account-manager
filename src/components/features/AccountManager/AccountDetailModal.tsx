@@ -42,18 +42,18 @@ const QuotaCard = memo(({ title, used, quota, icon, status, expiry, colors, t }:
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-2.5 h-2.5 rounded-full ${
           hasQuota && isActive
-            ? title.includes('试用')
+            ? title === t('detail.freeTrial')
               ? 'bg-cyan-500 shadow-lg shadow-cyan-500/50'
-              : title.includes('奖励')
+              : title === t('detail.bonusTotal')
                 ? 'bg-purple-500 shadow-lg shadow-purple-500/50'
                 : 'bg-blue-500 shadow-lg shadow-blue-500/50'
             : 'bg-gray-400'
         }`}></div>
         <span className={`text-xs font-medium uppercase tracking-wide ${
           hasQuota && isActive
-            ? title.includes('试用')
+            ? title === t('detail.freeTrial')
               ? 'text-cyan-500'
-              : title.includes('奖励')
+              : title === t('detail.bonusTotal')
                 ? 'text-purple-500'
                 : "text-muted-foreground"
             : "text-muted-foreground"
@@ -176,17 +176,17 @@ function AccountDetailModal({ account, onClose }: AccountDetailModalProps) {
       
       // 如果有警告，显示提示
       if (result.warning) {
-        await showError('同步警告', result.warning)
+        await showError('Sync warning', result.warning)
       }
       
-      // 封禁账号额度为 0
+      // Banned账号额度为 0
       const isBanned = isBannedStatus(updated)
       const quota = isBanned ? 0 : (updated.usageData?.usageBreakdownList?.[0]?.usageLimit ?? 0)
       const used = updated.usageData?.usageBreakdownList?.[0]?.currentUsage ?? 0
       setForm(prev => ({ ...prev, quota, used, status: updated.status }))
     } catch (e) {
       const errorMsg = String(e)
-      let status = '刷新失败'
+      let status = 'refresh_failed'
       if (errorMsg.includes('BANNED')) {
         status = 'banned'
       } else if (errorMsg.includes('AUTH_ERROR') || errorMsg.includes('401') || errorMsg.includes('invalid')) {
@@ -214,13 +214,13 @@ function AccountDetailModal({ account, onClose }: AccountDetailModalProps) {
   const bonuses = breakdown?.bonuses || []
   const now = Date.now()
   
-  // 检查试用是否过期
+  // 检查试用是否Expired
   const trialExpiry = freeTrialInfo?.freeTrialExpiry ? freeTrialInfo.freeTrialExpiry * 1000 : 0
   const trialActive = freeTrialInfo?.freeTrialStatus === 'ACTIVE' || (trialExpiry > now)
   const freeTrialQuota = trialActive ? (freeTrialInfo?.usageLimit || 0) : 0
   const freeTrialUsed = trialActive ? (freeTrialInfo?.currentUsage || 0) : 0
   
-  // 检查每个奖励是否过期（只计入未过期且状态为 ACTIVE 的奖励）
+  // 检查每个奖励是否Expired（只计入未Expired且状态为 ACTIVE 的奖励）
   let bonusQuota = 0, bonusUsed = 0
   bonuses.forEach(b => {
     const expiry = b.expiresAt ? b.expiresAt * 1000 : Infinity
@@ -448,7 +448,7 @@ function AccountDetailModal({ account, onClose }: AccountDetailModalProps) {
             <div className="mt-6 pt-5 border-t border-border">
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-lg">📋</span>
-                <span className={`text-sm font-medium text-foreground`}>订阅信息</span>
+                <span className={`text-sm font-medium text-foreground`}>{t('home.subscriptionDetails')}</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className={`p-3 rounded-lg bg-muted/30`}>
@@ -480,37 +480,37 @@ function AccountDetailModal({ account, onClose }: AccountDetailModalProps) {
                   </div>
                 </div>
                 <div className={`p-3 rounded-lg bg-muted/30`}>
-                  <div className={`text-xs text-muted-foreground mb-1`}>超额能力</div>
+                  <div className={`text-xs text-muted-foreground mb-1`}>Overage capability</div>
                   <div className={"text-foreground"}>
                     {currentAccount.usageData?.subscriptionInfo?.overageCapability === 'OVERAGE_CAPABLE' ? (
-                      <span className="text-green-500 font-medium">✓ 支持</span>
+                      <span className="text-green-500 font-medium">✓ {t('common.yes')}</span>
                     ) : (
-                      <span className={"text-muted-foreground"}>✗ 不支持</span>
+                      <span className={"text-muted-foreground"}>✗ {t('common.no')}</span>
                     )}
                   </div>
                 </div>
                 {breakdown?.overageRate != null && (
                   <>
                     <div className={`p-3 rounded-lg bg-muted/30`}>
-                      <div className={`text-xs text-muted-foreground mb-1`}>超额费率</div>
+                      <div className={`text-xs text-muted-foreground mb-1`}>{t('detail.overageRate')}</div>
                       <div className={`text-foreground font-medium`}>
                         {breakdown.currency === 'USD' ? '$' : breakdown.currency}{breakdown.overageRate}/Credit
                       </div>
                     </div>
                     <div className={`p-3 rounded-lg bg-muted/30`}>
-                      <div className={`text-xs text-muted-foreground mb-1`}>超额上限</div>
+                      <div className={`text-xs text-muted-foreground mb-1`}>{t('detail.overageCap')}</div>
                       <div className={`text-foreground font-medium`}>
                         {breakdown.currency === 'USD' ? '$' : breakdown.currency}{breakdown.overageCap}
                       </div>
                     </div>
                     <div className={`p-3 rounded-lg bg-muted/30`}>
-                      <div className={`text-xs text-muted-foreground mb-1`}>当前超额</div>
+                      <div className={`text-xs text-muted-foreground mb-1`}>Current overage</div>
                       <div className={`text-foreground font-bold ${breakdown.currentOverages > 0 ? 'text-orange-500' : ''}`}>
                         {formatUsage(breakdown.currentOverages || 0)}
                       </div>
                     </div>
                     <div className={`p-3 rounded-lg bg-muted/30`}>
-                      <div className={`text-xs text-muted-foreground mb-1`}>超额费用</div>
+                      <div className={`text-xs text-muted-foreground mb-1`}>Overage charges</div>
                       <div className={`text-foreground font-bold ${breakdown.overageCharges > 0 ? 'text-orange-500' : ''}`}>
                         {breakdown.currency === 'USD' ? '$' : breakdown.currency}{breakdown.overageCharges?.toFixed(2) || '0.00'}
                       </div>
@@ -574,7 +574,7 @@ function AccountDetailModal({ account, onClose }: AccountDetailModalProps) {
                 onClick={() => fetchModels(true)}
                 disabled={modelsLoading}
                 className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50"
-                title="强制刷新模型列表"
+                title={t('accountCard.refreshModels')}
               >
                 <RefreshCw size={14} className={modelsLoading ? "animate-spin text-muted-foreground" : "text-muted-foreground"} />
               </button>

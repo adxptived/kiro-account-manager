@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Coffee, X } from 'lucide-react'
 import { useApp } from '../../hooks/useApp'
+import { useTranslation } from 'react-i18next'
 import alipayQR from '../../assets/donate/alipay.jpg'
 import wechatQR from '../../assets/donate/wechat.jpg'
 
 function WelcomeModal() {
-  
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [previewImg, setPreviewImg] = useState(null)
 
@@ -13,7 +14,7 @@ function WelcomeModal() {
     // 检查今天是否已显示过
     const lastShown = localStorage.getItem('welcome_last_shown')
     const today = new Date().toDateString()
-    
+
     if (lastShown !== today) {
       // 今天还没显示过，显示弹窗
       setOpen(true)
@@ -34,7 +35,7 @@ function WelcomeModal() {
       <div className={`glass-card rounded-2xl w-full max-w-[520px] shadow-2xl border border-border relative overflow-hidden`}>
         {/* 背景装饰 - 简化 */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        
+
         {/* 关闭按钮 */}
         <button
           onClick={handleClose}
@@ -57,10 +58,10 @@ function WelcomeModal() {
 
             <div className="flex-1">
               <h2 className={`text-xl font-bold text-foreground mb-1`}>
-                ⚠️ 重要提示
+                {t('welcome.importantNotice')}
               </h2>
               <p className={`text-sm text-muted-foreground`}>
-                本软件永久免费
+                {t('welcome.permanentlyFree')}
               </p>
             </div>
           </div>
@@ -76,12 +77,12 @@ function WelcomeModal() {
               </div>
               <div className="flex-1">
                 <p className={`text-sm font-semibold text-foreground mb-2`}>
-                  重要提示：本软件永久免费
+                  {t('welcome.importantNoticeSoftwareFree')}
                 </p>
                 <div className={`text-xs text-muted-foreground space-y-1.5 leading-relaxed`}>
-                  <p>• 本软件完全开源免费，任何人不得以任何形式收费</p>
-                  <p>• 所有功能完全开放，无任何限制</p>
-                  <p>• 如有人向您收费，请立即举报</p>
+                  <p>{t('welcome.openSourceFree')}</p>
+                  <p>{t('welcome.allFeaturesOpen')}</p>
+                  <p>{t('welcome.reportIfCharged')}</p>
                 </div>
               </div>
             </div>
@@ -92,70 +93,70 @@ function WelcomeModal() {
               <div className="flex items-center gap-2 mb-3">
                 <Coffee size={18} className="text-amber-500" />
                 <p className={`text-base font-semibold text-foreground`}>
-                  💖 请作者喝杯咖啡
+                  {t('welcome.buyMeCoffee')}
                 </p>
               </div>
-              
+
               <div className={`bg-muted/30 rounded-xl p-4 space-y-3`}>
                 <p className={`text-sm text-muted-foreground`}>
-                  如果这个工具帮到了你，欢迎请我喝杯咖啡，你的支持是我持续更新的动力 ❤️
+                  {t('welcome.supportMessage')}
                 </p>
-                
+
                 {/* 赞助福利 */}
                 <div className={`bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 space-y-2`}>
-                  <p className={`text-xs font-medium text-foreground`}>赞助用户福利：</p>
+                  <p className={`text-xs font-medium text-foreground`}>{t('welcome.sponsorBenefits')}:</p>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-base">⚡</span>
-                      <p className={`text-sm text-foreground`}>问题反馈优先处理</p>
+                      <p className={`text-sm text-foreground`}>{t('welcome.priorityFeedback')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-base">🎯</span>
-                      <p className={`text-sm text-foreground`}>功能建议优先实现</p>
+                      <p className={`text-sm text-foreground`}>{t('welcome.priorityFeatures')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-base">🔧</span>
-                      <p className={`text-sm text-foreground`}>一对一技术支持</p>
+                      <p className={`text-sm text-foreground`}>{t('welcome.oneOnOneSupport')}</p>
                     </div>
                   </div>
                   <p className={`text-xs text-muted-foreground pt-1 border-t border-border/50`}>
-                    💡 提示：赞助时请备注你的 GitHub 用户名或邮箱，方便联系
+                    💡 {t('welcome.sponsorHint')}
                   </p>
                 </div>
-                
+
                 {/* 二维码 - 简化 */}
                 <div className="flex justify-center gap-8 pt-2">
-                  <div 
+                  <div
                     className="flex flex-col items-center gap-2 cursor-pointer group"
                     onClick={() => setPreviewImg(alipayQR)}
                   >
                     <div className="bg-white p-2 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                      <img 
-                        src={alipayQR} 
-                        alt="支付宝" 
+                      <img
+                        src={alipayQR}
+                        alt={t('welcome.alipay')}
                         className="w-24 h-24 rounded-lg"
                       />
                     </div>
-                    <p className={`text-sm font-medium text-foreground`}>支付宝</p>
+                    <p className={`text-sm font-medium text-foreground`}>{t('welcome.alipay')}</p>
                   </div>
-                  <div 
+                  <div
                     className="flex flex-col items-center gap-2 cursor-pointer group"
                     onClick={() => setPreviewImg(wechatQR)}
                   >
                     <div className="bg-white p-2 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                      <img 
-                        src={wechatQR} 
-                        alt="微信支付" 
+                      <img
+                        src={wechatQR}
+                        alt={t('welcome.wechatPay')}
                         className="w-24 h-24 rounded-lg"
                       />
                     </div>
-                    <p className={`text-sm font-medium text-foreground`}>微信支付</p>
+                    <p className={`text-sm font-medium text-foreground`}>{t('welcome.wechatPay')}</p>
                   </div>
                 </div>
-                <p className={`text-xs text-muted-foreground text-center`}>点击图片可放大查看</p>
+                <p className={`text-xs text-muted-foreground text-center`}>{t('welcome.clickToEnlarge')}</p>
               </div>
             </div>
-          
+
         </div>
 
         {/* 底部按钮 - 简化 */}
@@ -164,24 +165,24 @@ function WelcomeModal() {
             onClick={handleClose}
             className="px-6 py-3 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-[0.98]"
           >
-            我知道了
+            {t('welcome.iUnderstand')}
           </button>
         </div>
       </div>
 
       {/* 图片预览弹窗 */}
       {previewImg && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
           onClick={() => setPreviewImg(null)}
         >
           <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={previewImg} 
-              alt="预览" 
+            <img
+              src={previewImg}
+              alt="Preview"
               className="max-w-[360px] max-h-[360px] rounded-2xl shadow-2xl"
             />
-            <button 
+            <button
               className={`absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 cursor-pointer focus:ring-2 focus:ring-blue-500/30 glass-card border border-border`}
               onClick={() => setPreviewImg(null)}
             >

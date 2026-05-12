@@ -20,13 +20,13 @@ function MCPManager() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingServer, setEditingServer] = useState<any>(null) // { name, config }
 
-  // 加载配置
+  // 加载Config
   const loadConfig = useCallback(async () => {
     try {
       const config = await invoke<any>('get_mcp_config', { projectDir: null })
       setServers(config.mcpServers || {})
     } catch (e) {
-      handleUiError('加载 MCP 配置失败', e, { userMessage: '加载 MCP 配置失败' })
+      handleUiError('Failed to load MCP config', e, { userMessage: 'Failed to load MCP config' })
     } finally {
       setLoading(false)
     }
@@ -45,7 +45,7 @@ function MCPManager() {
         [name]: { ...prev[name], disabled }
       }))
     } catch (e) {
-      handleUiError('切换 MCP 状态失败', e, { userMessage: '切换状态失败' })
+      handleUiError(t('mcp.toggleFailedInternal'), e, { userMessage: t('mcp.toggleFailedInternal') })
     }
   }
 
@@ -61,7 +61,7 @@ function MCPManager() {
           return next
         })
       } catch (e) {
-        handleUiError('删除 MCP 服务失败', e, { userMessage: '删除失败' })
+        handleUiError(t('mcp.deleteFailedInternal'), e, { userMessage: t('mcp.deleteFailedInternal') })
       }
     }
   }

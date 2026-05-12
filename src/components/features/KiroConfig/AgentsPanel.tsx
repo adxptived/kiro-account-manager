@@ -67,7 +67,7 @@ const buildAgentContent = ({ name, description, tools, model, includeMcpJson, in
   return fm + '\n---\n' + body
 }
 
-// 格式化文件大小
+// Format文件大小
 const formatSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`
 
 // scope 徽章
@@ -75,13 +75,13 @@ const ScopeBadge = ({ scope, accent }: any) => {
   if (scope === 'project') {
     return (
       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-500 border border-amber-500/30">
-        <FolderOpen size={10} />项目
+        <FolderOpen size={10} />Project
       </span>
     )
   }
   return (
     <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${accent.scopeBadge}`}>
-      <Globe size={10} />用户
+      <Globe size={10} />User
     </span>
   )
 }
@@ -97,7 +97,7 @@ const AVAILABLE_TOOL_TAGS = [
 
 // Kiro v0.10.32 可用的模型
 const AVAILABLE_MODELS = [
-  { value: '', label: '默认（跟随主对话）' },
+  { value: '', label: 'Default (follow main chat)' },
   { value: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5' },
   { value: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
   { value: 'claude-haiku-4.5', label: 'Claude Haiku 4.5' },
@@ -148,7 +148,7 @@ function AgentsPanel({ onCountChange, projectDir }: any) {
       setAgents(data)
       onCountChange?.(data?.length || 0)
     } catch (e) {
-      handleUiError('加载 Custom Agents 失败', e, { userMessage: t('agents.loadFailed') || '加载 Custom Agents 失败' })
+      handleUiError('Failed to load Custom Agents', e, { userMessage: t('agents.loadFailed') || 'Failed to load Custom Agents' })
     } finally {
       setLoading(false)
     }
@@ -198,7 +198,7 @@ function AgentsPanel({ onCountChange, projectDir }: any) {
       setSelectedAgent({ ...selectedAgent, content: fullContent })
       setHasChanges(false)
     } catch (e) {
-      handleUiError('保存 Custom Agent 失败', e, { userMessage: t('agents.saveFailed') || '保存失败' })
+      handleUiError(t('agents.saveFailedInternal'), e, { userMessage: t('agents.saveFailed') || t('agents.saveFailedInternal') })
     } finally {
       setSaving(false)
     }
@@ -221,7 +221,7 @@ function AgentsPanel({ onCountChange, projectDir }: any) {
         setHasChanges(false)
       }
     } catch (e) {
-      handleUiError('删除 Custom Agent 失败', e, { userMessage: t('agents.deleteFailed') || '删除失败' })
+      handleUiError('Failed to delete Custom Agent', e, { userMessage: t('agents.deleteFailed') || 'Delete failed' })
     }
   }
 
@@ -242,7 +242,7 @@ function AgentsPanel({ onCountChange, projectDir }: any) {
       setShowCreateModal(false)
       handleSelect(newAgent)
     } catch (e) {
-      handleUiError('创建 Custom Agent 失败', e, { userMessage: t('agents.createFailed') || '创建失败' })
+      handleUiError('Failed to create Custom Agent', e, { userMessage: t('agents.createFailed') || 'Create failed' })
     }
   }
 
@@ -419,7 +419,7 @@ function AgentsPanel({ onCountChange, projectDir }: any) {
                   <MultiSelect
                     value={editState.tools}
                     onChange={(v) => updateEditState('tools', v)}
-                    options={AVAILABLE_TOOL_TAGS.map(tag => ({ value: tag, label: tag === '*' ? '* (全部工具)' : tag }))}
+                    options={AVAILABLE_TOOL_TAGS.map(tag => ({ value: tag, label: tag === '*' ? '* (all tools)' : tag }))}
                     placeholder={t('agents.selectTools')}
                     searchable
                     clearable
@@ -562,7 +562,7 @@ function CreateAgentModal({ onCreate, onClose, accent, surface, accentGradientBu
             <MultiSelect
               value={tools}
               onChange={handleToolsChange}
-              options={AVAILABLE_TOOL_TAGS.map(tag => ({ value: tag, label: tag === '*' ? '* (全部工具)' : tag }))}
+              options={AVAILABLE_TOOL_TAGS.map(tag => ({ value: tag, label: tag === '*' ? '* (all tools)' : tag }))}
               placeholder={t('agents.selectTools')}
               searchable clearable
               className={`text-foreground bg-background border-input ${colors.inputFocus}`}

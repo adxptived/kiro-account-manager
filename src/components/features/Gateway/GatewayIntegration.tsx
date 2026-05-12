@@ -1,4 +1,5 @@
 import { Check, Copy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { invoke } from '@tauri-apps/api/core'
@@ -26,6 +27,7 @@ function GatewayIntegration({
   copySuccess,
   effectiveConfig,
   status}: GatewayIntegrationProps) {
+  const { t } = useTranslation()
 
   // 构建完整的 baseUrl
   const port = (status?.running ? status?.port : null) || effectiveConfig?.port || status?.port || 8765
@@ -42,8 +44,8 @@ function GatewayIntegration({
         <div className="flex flex-col gap-3">
           <GatewaySectionHeader
             colors={colors}
-            title="接入指南"
-            badge={<Badge variant="secondary" className="">客户端接入</Badge>}
+            title={t('gateway.integrationGuide')}
+            badge={<Badge variant="secondary" className="">{t('gateway.clientIntegration')}</Badge>}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -61,25 +63,25 @@ function GatewayIntegration({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <GatewayStatCard
               colors={colors}
-              label="接入地址"
+              label={t('gateway.integrationAddress')}
               value={integrationSummary.endpointLabel}
-              detail={`客户端应连接 ${effectiveConnectHost}`}
+              detail={`${t('gateway.clientShouldConnect')} ${effectiveConnectHost}`}
             />
-            <GatewayStatCard colors={colors} label="认证头" value={integrationSummary.authLabel} />
+            <GatewayStatCard colors={colors} label={t('gateway.authHeader')} value={integrationSummary.authLabel} />
           </div>
 
           <GatewaySubCard>
             <div className="flex flex-col gap-3">
               <GatewaySectionHeader
                 colors={colors}
-                title="兼容能力矩阵"
+                title={t('gateway.compatibilityMatrix')}
                 badge={<Badge variant="secondary" className="">Protocol Surface</Badge>}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <GatewayStatCard colors={colors} label="Anthropic" value="Messages / 流式事件" detail="支持 Claude 兼容接入、消息级流式返回、账号路由与本地鉴权。" />
-                <GatewayStatCard colors={colors} label="OpenAI" value="Chat Completions / Responses" detail="支持 /v1/chat/completions（传统 OpenAI 格式）、/v1/responses、function call、流式 delta、done 与 completed 事件，并透传 tool_choice。" />
-                <GatewayStatCard colors={colors} label="反代边界" value="本地入口 + 上游凭证托管" detail="客户端只接触本地反代客户端 Key（命中任意已配置 Key 即可）；Kiro access token 与区域信息由反代自动管理。" />
-                <GatewayStatCard colors={colors} label="排障支持" value="日志 / 错误 / 请求元数据" detail="默认记录端点、状态码、耗时、模型、Region、上游来源等元数据；如旧日志里仍有 body，这里也会兼容展示。" />
+                <GatewayStatCard colors={colors} label="Anthropic" value={t('gateway.anthropicCompatibility')} detail={t('gateway.anthropicCompatibilityDesc')} />
+                <GatewayStatCard colors={colors} label="OpenAI" value={t('gateway.openaiCompatibility')} detail={t('gateway.openaiCompatibilityDesc')} />
+                <GatewayStatCard colors={colors} label={t('gateway.proxyBoundary')} value={t('gateway.proxyBoundaryValue')} detail={t('gateway.proxyBoundaryDesc')} />
+                <GatewayStatCard colors={colors} label={t('gateway.troubleshootingSupport')} value={t('gateway.troubleshootingSupportValue')} detail={t('gateway.troubleshootingSupportDesc')} />
               </div>
             </div>
           </GatewaySubCard>
@@ -91,37 +93,37 @@ function GatewayIntegration({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, 'Claude / Anthropic 配置已复制')}
+                onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, t('gateway.claudeConfigCopied'))}
                 className="gap-1"
               >
                 <Copy size={14} />
-                复制 Claude / Anthropic 配置
+                {t('gateway.copyClaudeConfig')}
               </Button>
             )}
           />
 
           <GatewayCodeCard
-            title="OpenAI Responses 兼容"
+            title={t('gateway.openaiCompatibility')}
             code={clientSamples.openai.env}
             actions={(
               <>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, 'OpenAI 兼容配置已复制')}
+                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, t('gateway.openAIConfigCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制 OpenAI 兼容配置
+                  {t('gateway.copyOpenAIConfig')}
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(clientSamples.openai.curl, '兼容 Responses curl 已复制')}
+                  onClick={() => copyText(clientSamples.openai.curl, t('gateway.responsesCurlCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制兼容 Responses curl
+                  {t('gateway.copyResponsesCurl')}
                 </Button>
                 {copySuccess ? (
                   <Badge variant="default" className="gap-1">
@@ -133,7 +135,7 @@ function GatewayIntegration({
             )}
           >
             <p className={`text-xs mt-2 text-muted-foreground`}>
-              OpenAI 兼容客户端支持 <code className="bg-muted px-1 py-0.5 rounded text-xs">/v1/responses</code>（Kiro 扩展格式）和 <code className="bg-muted px-1 py-0.5 rounded text-xs">/v1/chat/completions</code>（传统 OpenAI 格式），示例 model 可替换为任意反代支持的模型。
+              {t('gateway.openaiCompatibilityNote')}
             </p>
             <pre className="bg-muted rounded-md p-3 overflow-x-auto text-xs font-mono mt-2">
               <code>{clientSamples.openai.curl}</code>
@@ -148,20 +150,20 @@ function GatewayIntegration({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, 'Chat Completions 配置已复制')}
+                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, t('gateway.chatCompletionsConfigCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制 Chat Completions 配置
+                  {t('gateway.copyChatCompletionsConfig')}
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(clientSamples.openaiChat.curl, 'Chat Completions curl 已复制')}
+                  onClick={() => copyText(clientSamples.openaiChat.curl, t('gateway.chatCompletionsCurlCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制 Chat Completions curl
+                  {t('gateway.copyChatCompletionsCurl')}
                 </Button>
                 {copySuccess ? (
                   <Badge variant="default" className="gap-1">
@@ -173,7 +175,7 @@ function GatewayIntegration({
             )}
           >
             <p className={`text-xs mt-2 text-muted-foreground`}>
-              传统 OpenAI Chat Completions 格式，兼容标准 OpenAI 客户端库（如 openai-python、openai-node）。
+              {t('gateway.traditionalOpenAINote')}
             </p>
             <pre className="bg-muted rounded-md p-3 overflow-x-auto text-xs font-mono mt-2">
               <code>{clientSamples.openaiChat.curl}</code>
@@ -188,11 +190,11 @@ function GatewayIntegration({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, 'Claude Code 配置已复制')}
+                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, t('gateway.configCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制配置
+                  {t('gateway.copyConfig')}
                 </Button>
                 <Button
                   variant="default"
@@ -202,7 +204,7 @@ function GatewayIntegration({
                       // 检测是否安装
                       const installed = await invoke('check_claude_code_installed')
                       if (!installed) {
-                        await copyText('未检测到 Claude Code CLI，请先安装：https://docs.anthropic.com/en/docs/claude-code', '未安装 Claude Code')
+                        await copyText(t('gateway.claudeCodeNotInstalled'), t('gateway.claudeCodeNotInstalledMsg'))
                         return
                       }
 
@@ -210,20 +212,20 @@ function GatewayIntegration({
                         baseUrl: fullBaseUrl,
                         apiKey: firstApiKey
                       })
-                      await copyText(result as string, '配置成功')
+                      await copyText(result as string, t('gateway.configSuccess'))
                     } catch (e) {
-                      await copyText(String(e), '配置失败')
+                      await copyText(String(e), t('gateway.configFailed'))
                     }
                   }}
                   className="gap-1"
                 >
-                  直接配置
+                  {t('gateway.directConfig')}
                 </Button>
               </>
             )}
           >
             <p className={`text-xs mt-2 text-muted-foreground`}>
-              Claude Code CLI 工具，点击"直接配置"自动写入 <code className="bg-muted px-1 py-0.5 rounded text-xs">~/.claude/settings.json</code>
+              {t('gateway.claudeCodeToolNote')}
             </p>
           </GatewayCodeCard>
 
@@ -235,11 +237,11 @@ function GatewayIntegration({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, 'Codex CLI 配置已复制')}
+                  onClick={() => copyText(`${fullBaseUrl}\n${firstApiKey}`, t('gateway.configCopied'))}
                   className="gap-1"
                 >
                   <Copy size={14} />
-                  复制配置
+                  {t('gateway.copyConfig')}
                 </Button>
                 <Button
                   variant="default"
@@ -249,7 +251,7 @@ function GatewayIntegration({
                       // 检测是否安装
                       const installed = await invoke('check_codex_cli_installed')
                       if (!installed) {
-                        await copyText('未检测到 Codex CLI，请先安装：https://openai.com/index/introducing-codex-cli/', '未安装 Codex CLI')
+                        await copyText(t('gateway.codexNotInstalled'), t('gateway.codexNotInstalledMsg'))
                         return
                       }
 
@@ -258,30 +260,30 @@ function GatewayIntegration({
                         apiKey: firstApiKey,
                         model: 'claude-sonnet-4-5-20250929'
                       })
-                      await copyText(result as string, '配置成功')
+                      await copyText(result as string, t('gateway.configSuccess'))
                     } catch (e) {
-                      await copyText(String(e), '配置失败')
+                      await copyText(String(e), t('gateway.configFailed'))
                     }
                   }}
                   className="gap-1"
                 >
-                  直接配置
+                  {t('gateway.directConfig')}
                 </Button>
               </>
             )}
           >
             <p className={`text-xs mt-2 text-muted-foreground`}>
-              OpenAI 官方 CLI 工具，点击"直接配置"自动写入 <code className="bg-muted px-1 py-0.5 rounded text-xs">~/.codex/config.toml</code> 和 <code className="bg-muted px-1 py-0.5 rounded text-xs">~/.codex/auth.json</code>
+              {t('gateway.codexToolNote')}
             </p>
           </GatewayCodeCard>
 
-          <GatewayCodeCard title="凭证口径">
+          <GatewayCodeCard title={t('gateway.credentials')}>
             <div className="flex flex-col gap-1.5 mt-2">
-              <p className={`text-xs text-muted-foreground`}>客户端 {'->'} 本地反代 使用 API Key</p>
+              <p className={`text-xs text-muted-foreground`}>{t('gateway.clientToProxy')}</p>
               <pre className="bg-muted rounded-md p-3 overflow-x-auto text-xs font-mono">
                 <code>{integrationSummary.authLabel}</code>
               </pre>
-              <p className={`text-xs text-muted-foreground`}>本地反代 {'->'} Kiro API 使用本地 access token</p>
+              <p className={`text-xs text-muted-foreground`}>{t('gateway.proxyToKiro')}</p>
               <pre className="bg-muted rounded-md p-3 overflow-x-auto text-xs font-mono">
                 <code>Authorization: Bearer &lt;local kiro access token&gt;</code>
               </pre>

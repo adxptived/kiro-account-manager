@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 
 export interface AppSettings {
+  locale?: string;
   lockModel: boolean;
   lockedModel: string | null;
   autoRefresh: boolean;
@@ -42,6 +43,7 @@ const AppSettingsContext = createContext<AppSettingsContextValue | null>(null)
 
 // 默认设置
 const DEFAULT_SETTINGS: AppSettings = {
+  locale: 'zh-CN',
   lockModel: false,
   lockedModel: null,
   autoRefresh: true,

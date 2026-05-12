@@ -94,7 +94,7 @@ export function AccountTableRowSkeleton() {
       <SkeletonBox className="w-14 h-6 rounded shrink-0" />
       {/* 机器码 */}
       <SkeletonBox className="w-20 h-4 shrink-0" />
-      {/* 过期时间 */}
+      {/* Expired时间 */}
       <SkeletonBox className="w-24 h-4 shrink-0" />
       {/* 试用到期 */}
       <SkeletonBox className="w-20 h-4 shrink-0" />

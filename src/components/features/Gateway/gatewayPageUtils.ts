@@ -1,3 +1,5 @@
+import i18n from '../../i18n'
+
 const ALLOWED_REGIONS = [
   'us-east-1',
   'eu-central-1',
@@ -97,9 +99,9 @@ export const buildGatewayConnectHost = (host: string, localOnly: boolean): strin
   if (!value) {
     return '127.0.0.1'
   if (value === '0.0.0.0' || value === '::') {
-    return localOnly ? '127.0.0.1' : '<局域网IP>'
+    return localOnly ? '127.0.0.1' : '<LAN IP>'
   }
-    return localOnly ? '127.0.0.1' : '<局域网IP>'
+    return localOnly ? '127.0.0.1' : '<LAN IP>'
   }
 
   return value
@@ -151,40 +153,40 @@ export const createGatewayFieldErrors = (config: any) => {
   const clientApiKeys = parseClientApiKeys(config?.clientApiKeysText || config?.apiKey)
 
   if (!host) {
-    errors.host = '监听地址不能为空'
+    errors.host = 'Listen address cannot be empty'
   } else if (!isValidGatewayHost(host)) {
-    errors.host = '监听地址必须是 localhost、IPv4 或 IPv6 地址'
+    errors.host = 'Listen address must be localhost, IPv4, or IPv6 address'
   }
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    errors.port = '端口必须在 1-65535 之间'
+    errors.port = 'Port must be between 1 and 65535'
   }
 
   if (!region) {
-    errors.region = 'region 不能为空'
+    errors.region = 'region cannot be empty'
   } else if (!(ALLOWED_REGIONS as readonly string[]).includes(region)) {
-    errors.region = `region 不受支持: ${region}`
+    errors.region = `region is not supported: ${region}`
   }
 
   if (!['single', 'group', 'pool'].includes(accountMode)) {
-    errors.accountMode = 'accountMode 必须是 single/group/pool'
+    errors.accountMode = 'accountMode must be single/group/pool'
   } else if (accountMode === 'single' && !String(config?.accountId || '').trim()) {
-    errors.accountId = 'single 模式必须选择账号'
+    errors.accountId = 'single mode requires an account'
   } else if (accountMode === 'group' && !String(config?.groupId || '').trim()) {
-    errors.groupId = 'group 模式必须选择分组'
+    errors.groupId = 'group mode requires a group'
   }
 
   if (!clientApiKeys.length) {
-    errors.clientApiKeysText = '必须至少填写一个客户端 API Key'
+    errors.clientApiKeysText = 'At least one client API Key is required'
   }
 
   if (!localOnly && !allowedIps.length) {
-    errors.allowedIpsText = '允许远程访问时必须至少配置一个白名单来源 IP'
+    errors.allowedIpsText = 'At least one allowlisted source IP is required when remote access is enabled'
   }
 
   const invalidAllowlistEntry = allowedIps.find(entry => !isValidAllowlistEntry(entry))
   if (invalidAllowlistEntry) {
-    errors.allowedIpsText = `白名单条目无效: ${invalidAllowlistEntry}`
+    errors.allowedIpsText = `Invalid allowlist entry: ${invalidAllowlistEntry}`
   }
 
   return errors
@@ -268,7 +270,7 @@ export const buildClientSamples = (baseUrl: string, apiKey: string | string[]): 
     '  -d "{\\"model\\":\\"claude-sonnet-4-5-20250929\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"hello\\"}]}"',
   ].join('\n')
 
-  // Claude Code 配置（~/.claude/settings.json）
+  // Claude Code Config（~/.claude/settings.json）
   const claudeCodeConfig = [
     '{',
     '  "env": {',
@@ -278,7 +280,7 @@ export const buildClientSamples = (baseUrl: string, apiKey: string | string[]): 
     '}',
   ].join('\n')
 
-  // Codex CLI 配置（~/.codex/config.toml + ~/.codex/auth.json）
+  // Codex CLI Config（~/.codex/config.toml + ~/.codex/auth.json）
   const codexConfig = [
     '# ~/.codex/config.toml',
     'model_provider = "custom"',
@@ -322,7 +324,7 @@ export const buildClientSamples = (baseUrl: string, apiKey: string | string[]): 
 export const formatGatewayAccountOptionLabel = (account: any): string => {
   const email = String(account?.email || '').trim()
   const userId = String(account?.userId || '').trim()
-  return email || userId || '未知账号'
+  return email || userId || 'Unknown account'
 }
 
 export const buildGatewayStatusSummary = ({ config, status, errorHistory, lastStatusSyncAt }: any) => {
@@ -339,51 +341,51 @@ export const buildGatewayStatusSummary = ({ config, status, errorHistory, lastSt
     logLevel: config?.logLevel || 'debug',
     sync: lastStatusSyncAt || '-',
     routing: `${mode} / ${strategy}`,
-    exposure: config?.localOnly ? '仅本机' : '允许远程',
+    exposure: config?.localOnly ? 'Local only' : 'Remote allowed',
     errorCount: errorCount
   }
 }
 export const buildGatewayRoutingSummary = ({ config, counts, selectedLabels = {} }: any) => {
   const mode = config?.accountMode || 'single'
-  const inventorySummary = `账号 ${counts?.accounts || 0} 个 / 分组 ${counts?.groups || 0} 个`
+  const inventorySummary = `${counts?.accounts || 0} accounts / ${counts?.groups || 0} groups`
 
   if (mode === 'single') {
     return {
-      modeLabel: '指定单账号',
-      modeDescription: '反代会固定使用一个账号，适合调试或绑定到单一租户场景。',
-      selectionLabel: '当前账号',
-      selectionValue: selectedLabels.single || '未选择账号',
+      modeLabel: 'Single account',
+      modeDescription: 'The proxy always uses one account, suitable for debugging or single-tenant binding.',
+      selectionLabel: 'Current account',
+      selectionValue: selectedLabels.single || 'No account selected',
       inventorySummary,
-      strategySummary: '固定账号，不参与轮换'}
+      strategySummary: 'Fixed account, no rotation'}
   }
 
   if (mode === 'group') {
     return {
-      modeLabel: '按分组账号池',
-      modeDescription: '先锁定账号分组，再按策略和阈值从该分组中挑选可用账号。',
-      selectionLabel: '当前分组',
-      selectionValue: selectedLabels.group || '未选择分组',
+      modeLabel: 'Group account pool',
+      modeDescription: 'Lock an account group first, then select available accounts by strategy and threshold.',
+      selectionLabel: 'Current group',
+      selectionValue: selectedLabels.group || 'No group selected',
       inventorySummary,
-      strategySummary: `策略 ${config?.strategy || 'round_robin'} / 阈值 ${Number(config?.threshold) || 90}%`}
+      strategySummary: `Strategy ${config?.strategy || 'round_robin'} / threshold ${Number(config?.threshold) || 90}%`}
   }
 
   if (mode === 'pool') {
     return {
-      modeLabel: '账号管理池',
-      modeDescription: '使用所有可用账号，按策略和阈值自动选择，不限制分组。',
-      selectionLabel: '账号范围',
-      selectionValue: '所有可用账号',
+      modeLabel: 'Account management pool',
+      modeDescription: 'Use all available accounts and automatically select by strategy and threshold without group restrictions.',
+      selectionLabel: 'Account scope',
+      selectionValue: 'All available accounts',
       inventorySummary,
-      strategySummary: `策略 ${config?.strategy || 'round_robin'} / 阈值 ${Number(config?.threshold) || 90}%`}
+      strategySummary: `Strategy ${config?.strategy || 'round_robin'} / threshold ${Number(config?.threshold) || 90}%`}
   }
 
   return {
-    modeLabel: '按分组账号池',
-    modeDescription: '先锁定账号分组，再按策略和阈值从该分组中挑选可用账号。',
-    selectionLabel: '当前分组',
-    selectionValue: selectedLabels.group || '未选择分组',
+    modeLabel: 'Group account pool',
+    modeDescription: 'Lock an account group first, then select available accounts by strategy and threshold.',
+    selectionLabel: 'Current group',
+    selectionValue: selectedLabels.group || 'No group selected',
     inventorySummary,
-    strategySummary: `策略 ${config?.strategy || 'round_robin'} / 阈值 ${Number(config?.threshold) || 90}%`}
+    strategySummary: `Strategy ${config?.strategy || 'round_robin'} / threshold ${Number(config?.threshold) || 90}%`}
 }
 
 export const buildGatewayActionSummary = ({
@@ -398,42 +400,42 @@ export const buildGatewayActionSummary = ({
   if (hasFieldErrors) {
     return {
       tone: 'red',
-      title: '先修正配置错误',
-      description: '当前表单存在无效配置，保存、启动和重启都会被拦截，先修正标红字段。'}
+      title: 'Fix configuration errors first',
+      description: 'The current form has invalid configuration. Save, start, and restart are blocked until highlighted fields are fixed.'}
   }
 
   if (running && unsavedChanges && runtimeChanges) {
     return {
       tone: 'yellow',
-      title: '配置已变更，重启后生效',
-      description: '反代仍按已启动时的配置运行。先保存，再执行重启反代，才能让新配置生效。'}
+      title: 'Configuration changed, restart to apply',
+      description: 'The proxy is still running with its startup configuration. Save first, then restart the proxy to apply changes.'}
   }
 
   if (running && unsavedChanges) {
     return {
       tone: 'blue',
-      title: '当前运行配置尚未保存',
-      description: '当前页面配置已经用于运行反代，但还没有写回配置文件；如需保留下次启动沿用，请保存配置。'}
+      title: 'Current running configuration is not saved',
+      description: 'Current page configuration is used by the running proxy but has not been written back. Save it to keep it for next startup.'}
   }
 
   if (running) {
     return {
       tone: 'teal',
-      title: '反代运行中',
-      description: '当前配置与已保存状态一致；如需中断流量可直接停止反代。'}
+      title: 'Proxy running',
+      description: 'Current configuration matches saved state. Stop the proxy to interrupt traffic.'}
   }
 
   if (unsavedChanges) {
     return {
       tone: 'blue',
-      title: '可按当前配置直接启动',
-      description: '启动反代会使用当前表单里的配置；如果希望下次应用启动也沿用这些设置，先点保存配置。'}
+      title: 'Can start with current configuration',
+      description: 'Starting the proxy will use the current form configuration. Save first if you want these settings reused on next app launch.'}
   }
 
   return {
     tone: 'blue',
-    title: '反代当前未启动',
-    description: '可以直接启动现有配置，或先调整表单后再启动。'}
+    title: 'Proxy is not running',
+    description: 'Start the existing configuration directly, or adjust the form first.'}
 }
 
 export const buildGatewaySecuritySummary = ({ config }: any) => {
@@ -441,11 +443,11 @@ export const buildGatewaySecuritySummary = ({ config }: any) => {
   const clientApiKeys = parseClientApiKeys(config?.clientApiKeysText || config?.apiKey)
 
   return {
-    exposureLabel: config?.localOnly ? '仅本机访问' : '允许远程访问',
+    exposureLabel: config?.localOnly ? 'Local access only' : 'Remote access allowed',
     allowedIpsCount,
     apiKeyState: clientApiKeys.length
-      ? `已配置 ${clientApiKeys.length} 个客户端 Key`
-      : '未配置客户端 Key',
+      ? `${clientApiKeys.length} client keys configured`
+      : 'No client key configured',
     logLevel: config?.logLevel || 'debug'}
 }
 
@@ -457,9 +459,9 @@ export const buildGatewayIntegrationSummary = ({ baseUrl, apiKey, clientApiKeysT
 
   return {
     endpointLabel: baseUrl,
-    authLabel: clientApiKeys.length > 1 ? `Bearer ${safeKey}（共 ${clientApiKeys.length} 个 Key）` : `Bearer ${safeKey}`,
-    logDirState: String(logDir || '').trim() ? '日志目录已定位' : '日志目录未获取',
-    errorDigest: `${errorCount} 条错误 / ${errorHits} 次命中`}
+    authLabel: clientApiKeys.length > 1 ? `Bearer ${safeKey}（${clientApiKeys.length} keys total）` : `Bearer ${safeKey}`,
+    logDirState: String(logDir || '').trim() ? 'Log directory located' : 'Log directory not retrieved',
+    errorDigest: `${errorCount} errors / ${errorHits} hits`}
 }
 
 export const formatGatewayRequestDuration = (durationMs: number): string => {
@@ -595,10 +597,10 @@ export const buildGatewayMetricsSummary = (entries: any) => {
       outcomeCounts.other += 1
     }
 
-    const model = String(item?.model || '未记录模型').trim() || '未记录模型'
+    const model = String(item?.model || 'Model not recorded').trim() || 'Model not recorded'
     modelCounts[model] = (modelCounts[model] || 0) + 1
 
-    const upstream = String(item?.upstreamSource || '未解析上游来源').trim() || '未解析上游来源'
+    const upstream = String(item?.upstreamSource || 'Upstream source unresolved').trim() || 'Upstream source unresolved'
     upstreamCounts[upstream] = (upstreamCounts[upstream] || 0) + 1
 
     const status = String(item?.statusCode || 0)

@@ -6,7 +6,7 @@
  * 
  * 后端模型锁定功能：
  * - 使用 Rust tokio 后台任务，应用最小化后继续运行
- * - 自动读取 app-settings.json 中的 lockModel 和 lockedModel 配置
+ * - 自动读取 app-settings.json 中的 lockModel 和 lockedModel Config
  * - 每 30 秒检查一次 Kiro IDE 的模型设置
  * - 如果检测到模型变更，自动恢复锁定的模型
  */

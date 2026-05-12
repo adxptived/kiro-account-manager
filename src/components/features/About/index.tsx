@@ -141,7 +141,7 @@ function About() {
     }
   }, [theme])
 
-  // 技术栈配置
+  // 技术栈Config
   const techStack = useMemo(() => [
     { icon: Code2, label: t('about.frontend'), value: 'React + Vite' },
     { icon: Palette, label: t('about.ui'), value: 'TailwindCSS' },
@@ -348,11 +348,11 @@ function About() {
       <Dialog open={!!previewImg} onOpenChange={(open) => !open && closePreview()}>
         <DialogContent className="max-w-fit p-0 bg-transparent border-none shadow-none">
           <div className="relative">
-            <img src={previewImg} alt="预览" className="max-w-[320px] max-h-[320px] rounded-xl" />
+            <img src={previewImg} alt="Preview" className="max-w-[320px] max-h-[320px] rounded-xl" />
             <button
               className={`absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 glass-card`}
               onClick={closePreview}
-              aria-label="关闭预览"
+              aria-label="Close preview"
             >
               <X size={16} className={"text-foreground"} />
             </button>

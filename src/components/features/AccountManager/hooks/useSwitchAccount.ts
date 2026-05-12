@@ -35,7 +35,7 @@ export function useSwitchAccount(onLocalTokenChange) {
   const handleSwitchAccount = useCallback((account) => {
     if (isUnavailableStatus(account)) {
       const statusMeta = getAccountStatusMeta(account, t)
-      setSwitchDialog({ type: 'error', title: t('switch.failed'), message: `账号当前状态为${statusMeta.label}，请重新登录或恢复后再切换`, account: null })
+      setSwitchDialog({ type: 'error', title: t('switch.failed'), message: `Account current status is ${statusMeta.label}, please sign in again or restore it before switching`, account: null })
       return
     }
     if (!account.accessToken || !account.refreshToken) {
@@ -73,7 +73,7 @@ export function useSwitchAccount(onLocalTokenChange) {
         return
       }
 
-      // 检查 Token 是否过期或即将过期（1 小时内）
+      // 检查 Token 是否Expired或即将Expired（1 小时内）
       let needsRefresh = false
       if (account.expiresAt) {
         try {
@@ -81,13 +81,13 @@ export function useSwitchAccount(onLocalTokenChange) {
           const now = new Date()
           const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
           
-          // 如果已过期或 1 小时内过期，需要刷新
+          // 如果已Expired或 1 小时内Expired，需要刷新
           if (expiryDate <= oneHourFromNow) {
             needsRefresh = true
-            console.log('[Switch] Token 即将过期，先刷新 Token:', account.email, 'expires:', account.expiresAt)
+            console.log('[Switch] Token 即将Expired，先刷新 Token:', account.email, 'expires:', account.expiresAt)
           }
         } catch (e) {
-          console.warn('[Switch] 解析过期时间失败:', e)
+          console.warn('[Switch] 解析Expired时间失败:', e)
         }
       }
 
@@ -102,7 +102,7 @@ export function useSwitchAccount(onLocalTokenChange) {
         }
       }
 
-      // 同步账号（获取最新配额，如果 Token 仍然失效会再次刷新）
+      // 同步账号（获取最新配额，如果 Token 仍然Invalid会再次刷新）
       const syncResult = await invoke<SyncResult>('sync_account', { id: account.id })
       let refreshedAccount = syncResult.account
 
@@ -121,18 +121,18 @@ export function useSwitchAccount(onLocalTokenChange) {
       const breakdown = usageData?.usageBreakdownList?.[0]
       const now = Date.now()
 
-      // 主配额（永不过期）
+      // 主配额（永不Expired）
       const mainUsed = breakdown?.currentUsage ?? 0
       const mainLimit = breakdown?.usageLimit ?? 0
 
-      // 试用配额（检查过期）
+      // 试用配额（检查Expired）
       const trialInfo = breakdown?.freeTrialInfo
       const trialExpiry = trialInfo?.freeTrialExpiry ? trialInfo.freeTrialExpiry * 1000 : 0
       const trialValid = trialExpiry > now
       const trialUsed = trialValid ? (trialInfo?.currentUsage ?? 0) : 0
       const trialLimit = trialValid ? (trialInfo?.usageLimit ?? 0) : 0
 
-      // 奖励配额（检查每个奖励的过期时间）
+      // 奖励配额（检查每个奖励的Expired时间）
       const bonuses = breakdown?.bonuses ?? []
       let bonusUsed = 0, bonusLimit = 0
       bonuses.forEach(b => {

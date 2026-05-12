@@ -37,7 +37,7 @@ const buildContent = (inclusion: string, filePattern: string, body: string, name
   return fm + '\n---\n' + body
 }
 
-// 格式化文件大小
+// Format文件大小
 const formatSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`
 
 // scope 徽章
@@ -45,13 +45,13 @@ const ScopeBadge = ({ scope, accent }: any) => {
   if (scope === 'project') {
     return (
       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-500 border border-amber-500/30">
-        <FolderOpen size={10} />项目
+        <FolderOpen size={10} />Project
       </span>
     )
   }
   return (
     <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${accent.scopeBadge}`}>
-      <Globe size={10} />用户
+      <Globe size={10} />User
     </span>
   )
 }
@@ -88,7 +88,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       setFiles(data)
       onCountChange?.(data?.length || 0)
     } catch (e) {
-      handleUiError('加载 Steering 文件失败', e, { userMessage: '加载 Steering 文件失败' })
+      handleUiError(t('steering.loadFailed'), e, { userMessage: t('steering.loadFailed') })
     } finally {
       setLoading(false)
     }
@@ -133,7 +133,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       setSelectedFile({ ...selectedFile, content: fullContent })
       setHasChanges(false)
     } catch (e) {
-      handleUiError('保存 Steering 文件失败', e, { userMessage: t('steering.saveFailed') || '保存失败' })
+      handleUiError(t('steering.saveFailed'), e, { userMessage: t('steering.saveFailed') })
     } finally {
       setSaving(false)
     }
@@ -156,7 +156,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
         setHasChanges(false)
       }
     } catch (e) {
-      handleUiError('删除 Steering 文件失败', e, { userMessage: '删除失败' })
+      handleUiError(t('steering.deleteFailed'), e, { userMessage: t('steering.deleteFailed') })
     }
   }
 
@@ -176,7 +176,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       setShowCreateModal(false)
       handleSelect(newFile)
     } catch (e) {
-      handleUiError('创建 Steering 文件失败', e, { userMessage: t('steering.createFailed') || '创建失败' })
+      handleUiError(t('steering.createFailed'), e, { userMessage: t('steering.createFailed') })
     }
   }
 
@@ -212,7 +212,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       upsertFile(created)
       showSuccess(t('steering.defaultCreated'), created.fileName)
     } catch (e) {
-      handleUiError('创建默认 Steering 模板失败', e, { userMessage: t('steering.createDefaultFailed') || '创建失败' })
+      handleUiError(t('steering.createDefaultFailed'), e, { userMessage: t('steering.createDefaultFailed') })
     } finally {
       setCreatingDefault(false)
     }
@@ -240,7 +240,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       }
       showSuccess(t('steering.initialCreated'), projectDir)
     } catch (e) {
-      handleUiError('初始化项目 Steering 失败', e, { userMessage: t('steering.initializeFailed') || '初始化失败' })
+      handleUiError(t('steering.initializeFailed'), e, { userMessage: t('steering.initializeFailed') })
     } finally {
       setInitializingProject(false)
     }
@@ -257,7 +257,7 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
       upsertFile(refined)
       showSuccess(t('steering.refineSuccess'), refined.fileName)
     } catch (e) {
-      handleUiError('整理 Steering 文件失败', e, { userMessage: t('steering.refineFailed') || '整理失败' })
+      handleUiError(t('steering.refineFailed'), e, { userMessage: t('steering.refineFailed') })
     } finally {
       setRefining(false)
     }
@@ -346,15 +346,15 @@ function SteeringPanel({ onCountChange, projectDir }: any) {
 }
 
 // inclusion 模式配色映射
-const getInclusionStyles = (accent: any): any => ({
-  always:    { color: 'text-green-500',  bg: 'bg-green-500/15', border: 'border-green-500/30', dot: 'bg-green-500', label: '始终' },
-  auto:      { color: accent.text, bg: accent.bgSoft, border: accent.borderSoft, dot: accent.solidBg, label: '自动' },
-  fileMatch: { color: accent.text, bg: accent.bgSoft, border: accent.borderSoft, dot: accent.solidBg, label: '匹配' },
-  manual:    { color: 'text-orange-500', bg: 'bg-orange-500/15', border: 'border-orange-500/30', dot: 'bg-orange-500', label: '手动' }})
+const getInclusionStyles = (accent: any, t: any): any => ({
+  always:    { color: 'text-green-500',  bg: 'bg-green-500/15', border: 'border-green-500/30', dot: 'bg-green-500', label: t('steering.inclusionAlways') },
+  auto:      { color: accent.text, bg: accent.bgSoft, border: accent.borderSoft, dot: accent.solidBg, label: t('steering.inclusionAuto') },
+  fileMatch: { color: accent.text, bg: accent.bgSoft, border: accent.borderSoft, dot: accent.solidBg, label: t('steering.inclusionFileMatch') },
+  manual:    { color: 'text-orange-500', bg: 'bg-orange-500/15', border: 'border-orange-500/30', dot: 'bg-orange-500', label: t('steering.inclusionManual') }})
 
 // inclusion 徽章
-const InclusionBadge = ({ inclusion, accent }: any) => {
-  const styles = getInclusionStyles(accent)
+const InclusionBadge = ({ inclusion, accent, t }: any) => {
+  const styles = getInclusionStyles(accent, t)
   const s = styles[inclusion] || styles.always
   return (
     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${s.bg} ${s.color} border ${s.border}`}>
@@ -367,13 +367,13 @@ const InclusionBadge = ({ inclusion, accent }: any) => {
 // 文件列表组件
 function FileList({ files, selectedFile, onSelect, onDelete, onRefresh, onCreate, onCreateDefault, onCreateInitial, creatingDefault, initializingProject, hasProjectDir, accent, colors, t }: any) {
   const accentSolidButtonClass = getSolidAccentButton(accent)
-  const inclusionStyles = getInclusionStyles(accent)
+  const inclusionStyles = getInclusionStyles(accent, t)
   // 按 inclusion 分组（保持顺序）
   const groups = [
-    { key: 'always',    label: '始终包含' },
-    { key: 'auto',      label: '自动激活' },
-    { key: 'fileMatch', label: '文件匹配' },
-    { key: 'manual',    label: '手动引用' },
+    { key: 'always',    label: t('steering.groupAlways') },
+    { key: 'auto',      label: t('steering.groupAuto') },
+    { key: 'fileMatch', label: t('steering.groupFileMatch') },
+    { key: 'manual',    label: t('steering.groupManual') },
   ].map(g => ({
     ...g,
     files: files.filter((f: any) => parseFrontMatter(f.content).inclusion === g.key),
@@ -548,7 +548,7 @@ function Editor({ file, editState, hasChanges, saving, refining, inclusionOption
             <span className={`text-xs text-muted-foreground`}>{t('steering.inclusionMode')}:</span>
             <Select value={editState.inclusion} onValueChange={onInclusionChange}>
               <SelectTrigger className={`text-foreground bg-background border-input ${colors.inputFocus}`} style={{ minWidth: '120px', borderRadius: '0.5rem', height: '1.5rem', padding: '0 0.5rem', fontSize: '0.75rem' }}>
-                <SelectValue placeholder="选择模式..." />
+                <SelectValue placeholder="Select mode..." />
               </SelectTrigger>
               <SelectContent className={`glass-card border border-border`}>
                 {inclusionOptions.map((opt: any) => (
@@ -695,7 +695,7 @@ function CreateModal({ inclusionOptions, onCreate, onClose, accent, colors, t, h
             <label className={`block text-xs font-medium text-muted-foreground mb-1.5`}>{t('steering.inclusionMode')}</label>
             <Select value={inclusion} onValueChange={setInclusion}>
               <SelectTrigger className={`text-foreground bg-background border-input ${colors.inputFocus}`} style={{ borderRadius: '0.5rem' }}>
-                <SelectValue placeholder="选择模式" />
+                <SelectValue placeholder="Select mode" />
               </SelectTrigger>
               <SelectContent className={`glass-card border border-border`}>
                 {inclusionOptions.map((opt: any) => (

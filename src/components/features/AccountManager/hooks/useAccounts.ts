@@ -32,7 +32,7 @@ export function useAccounts() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 判断账号是否即将过期（5分钟内）
+  // 判断账号是否即将Expired（5分钟内）
   const isExpiringSoon = useCallback((account: Account) => {
     if (isUnavailableStatus(account)) return false
     if (!account.expiresAt) return false
@@ -89,15 +89,15 @@ export function useAccounts() {
         const idx = updatedAccounts.findIndex(a => a.id === account.id)
         if (idx !== -1) updatedAccounts[idx] = updated
         success = true
-        message = '同步成功'
+        message = 'Sync successful'
       } catch (e) {
         const errorMsg = String(e)
         const idx = updatedAccounts.findIndex(a => a.id === account.id)
         if (errorMsg.includes('BANNED')) {
-          message = '账号已封禁'
+          message = 'Account banned'
           if (idx !== -1) updatedAccounts[idx] = { ...updatedAccounts[idx], status: 'banned' }
         } else if (errorMsg.includes('AUTH_ERROR') || errorMsg.includes('401') || errorMsg.includes('invalid')) {
-          message = '账号已失效'
+          message = 'Account invalid'
           if (idx !== -1) updatedAccounts[idx] = { ...updatedAccounts[idx], status: 'invalid' }
         } else {
           message = errorMsg.slice(0, 30)
@@ -171,7 +171,7 @@ export function useAccounts() {
       const filePath = await save({
         defaultPath: `${defaultDir}${sep}${defaultName}`,
         filters: [{ name: 'JSON', extensions: ['json'] }],
-        title: '导出账号数据'
+        title: 'Export account data'
       })
       
       if (!filePath) return

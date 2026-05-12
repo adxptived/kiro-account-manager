@@ -1,17 +1,17 @@
 const STATUS_LABELS = {
-  normal: '正常',
-  capped: '封顶',
-  banned: '封禁',
-  invalid: '失效',
-  expired: '过期'}
+  normal: 'Active',
+  capped: 'Capped',
+  banned: 'Banned',
+  invalid: 'Invalid',
+  expired: 'Expired'}
 
 const SPECIAL_GROUP_LABELS = {
-  __none__: '无分组',
-  __has__: '有分组'}
+  __none__: 'No group',
+  __has__: 'Has group'}
 
 const SPECIAL_TAG_LABELS = {
-  __none__: '无标签',
-  __has__: '有标签'}
+  __none__: 'No tags',
+  __has__: 'Has tags'}
 
 function pickFirst(values) {
   return Array.isArray(values) ? values[0] || '' : values || ''
@@ -47,34 +47,34 @@ export function buildFilterSummaryItems({
   if (selectedGroup) {
     items.push({
       key: 'group',
-      label: '分组',
+      label: 'Group',
       value: resolveGroupFilterLabel(selectedGroup, allGroups)})
   }
 
   if (selectedTag) {
     items.push({
       key: 'tag',
-      label: '标签',
+      label: 'Tag',
       value: SPECIAL_TAG_LABELS[selectedTag] || tagMap.get(selectedTag)?.name || selectedTag})
   }
 
   const subscription = pickFirst(filters?.subscriptions)
   if (subscription) {
-    items.push({ key: 'subscription', label: '订阅', value: subscription })
+    items.push({ key: 'subscription', label: 'Subscription', value: subscription })
   }
 
   const status = pickFirst(filters?.statuses)
   if (status) {
-    items.push({ key: 'status', label: '状态', value: STATUS_LABELS[status] || status })
+    items.push({ key: 'status', label: 'Status', value: STATUS_LABELS[status] || status })
   }
 
   const provider = pickFirst(filters?.providers)
   if (provider) {
-    items.push({ key: 'provider', label: '登录方式', value: provider })
+    items.push({ key: 'provider', label: 'Provider', value: provider })
   }
 
   if (filters?.usageRange) {
-    items.push({ key: 'usageRange', label: '使用量', value: filters.usageRange })
+    items.push({ key: 'usageRange', label: 'Usage', value: filters.usageRange })
   }
 
   return items

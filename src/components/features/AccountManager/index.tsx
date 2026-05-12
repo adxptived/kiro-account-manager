@@ -202,11 +202,11 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
         showError(t('accounts.accountBanned'))
       } else if (errorMsg.includes('AUTH_ERROR')) {
         // AUTH_ERROR: 静默处理，不弹窗
-        console.log('[Sync] Token 已失效，已自动标记账号状态')
+        console.log('[Sync] Token 已Invalid，已自动标记账号状态')
       } else if (errorMsg.includes('401') || errorMsg.includes('invalid')) {
         showError(t('accounts.tokenInvalid'))
       } else if (errorMsg.includes('error sending request') || errorMsg.includes('connection') || errorMsg.includes('network') || errorMsg.includes('timeout')) {
-        showError('❌ 网络连接失败\n\n可能原因：\n• 网络不稳定\n• 代理设置有误\n• 防火墙拦截\n\n解决方法：\n1. 检查网络连接\n2. 检查代理设置\n3. 关闭防火墙或添加白名单')
+        showError(t('accounts.networkConnectionFailed'))
       } else {
         showError(errorMsg.slice(0, 100))
       }
@@ -221,19 +221,19 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
       const account = await invoke<any>('refresh_account_token', { id })
       patchAccountLocally(account)
       clearAvailableModelsState(id)
-      showSuccess('Token 刷新成功')
+      showSuccess('Token refresh successful')
       return { success: true, account }
     } catch (e) {
       const errorMsg = String(e)
       if (errorMsg.includes('BANNED')) {
-        showError('账号已封禁')
+        showError('Account banned')
       } else if (errorMsg.includes('AUTH_ERROR')) {
         // AUTH_ERROR: 静默处理，不弹窗（账号已自动标记为 invalid）
-        console.log('[Refresh] Token 已失效，已自动标记账号状态')
+        console.log('[Refresh] Token 已Invalid，已自动标记账号状态')
       } else if (errorMsg.includes('401') || errorMsg.includes('invalid')) {
-        showError('Token 无效，刷新失败')
+        showError('Token invalid, refresh failed')
       } else if (errorMsg.includes('error sending request') || errorMsg.includes('connection') || errorMsg.includes('network') || errorMsg.includes('timeout')) {
-        showError('❌ 网络连接失败\n\n可能原因：\n• 网络不稳定\n• 代理设置有误\n• 防火墙拦截\n\n解决方法：\n1. 检查网络连接\n2. 检查代理设置\n3. 关闭防火墙或添加白名单')
+        showError(t('accounts.networkConnectionFailed'))
       } else {
         showError(errorMsg.slice(0, 100))
       }
@@ -412,8 +412,8 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
     
     if (isCurrent) {
       const confirmed = await showConfirm(
-        '⚠️ 删除当前账号',
-        '您正在删除当前使用的账号！\n\n删除后 Kiro IDE 将无法使用，需要重新登录。\n\n确定要删除吗？'
+        t('accounts.deleteCurrentAccount'),
+        t('accounts.deleteCurrentAccountMessage')
       )
       if (!confirmed) return
     } else {
@@ -429,7 +429,7 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
   const handleDeleteRemote = useCallback(async (account: any) => {
     const confirmed = await showConfirm(
       '⚠️ ' + t('accountCard.deleteRemote'),
-      '远程删除将从 AWS 服务端注销此账号！\n\n此操作不可恢复，账号将永久失效。\n\n' + t('accountCard.deleteRemoteConfirm')
+      t('accounts.deleteRemoteWarning') + '\n\n' + t('accountCard.deleteRemoteConfirm')
     )
     if (confirmed) {
       try {
@@ -451,8 +451,8 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
     
     if (includesCurrent) {
       const confirmed = await showConfirm(
-        '⚠️ 批量删除包含当前账号',
-        `您选择了 ${selectedIds.length} 个账号，其中包含当前使用的账号！\n\n删除后 Kiro IDE 将无法使用，需要重新登录。\n\n确定要删除吗？`
+        '⚠️ ' + t('accounts.batchDeleteIncludesCurrent'),
+        t('accounts.batchDeleteIncludesCurrentMessage', { count: selectedIds.length })
       )
       if (!confirmed) return
     } else {
@@ -476,7 +476,7 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
         onImport={() => setShowImportModal(true)}
         onExport={async () => {
           if (selectedIds.length === 0) {
-            showError(t('accounts.exportSelectFirst') || '请先选择要导出的账号')
+            showError(t('accounts.exportSelectFirst') || 'Please select accounts to export first')
             return
           }
           handleExport(selectedIds)
@@ -484,7 +484,7 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
         onRefresh={loadAccounts}
         onRefreshAll={async () => {
           if (selectedIds.length === 0) {
-            showError(t('accounts.refreshSelectFirst') || '请先选择要刷新的账号')
+            showError(t('accounts.refreshSelectFirst') || 'Please select accounts to refresh first')
             return
           }
           batchRefreshAccounts(selectedIds, accounts)
@@ -521,12 +521,12 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
               </svg>
             </div>
             <h3 className={`text-xl font-bold text-foreground mb-2`}>
-              {searchTerm || selectedGroup || selectedTag || selectedStatus ? '没有找到匹配的账号' : '还没有账号'}
+              {searchTerm || selectedGroup || selectedTag || selectedStatus ? 'No matching accounts found' : 'No accounts yet'}
             </h3>
             <p className={`text-sm text-muted-foreground mb-6`}>
               {searchTerm || selectedGroup || selectedTag || selectedStatus
-                ? '试试调整筛选条件或搜索关键词'
-                : '导入账号开始管理你的 Kiro IDE 账户'}
+                ? 'Try adjusting filters or search keywords'
+                : 'Import accounts to start managing your Kiro IDE accounts'}
             </p>
             {!searchTerm && !selectedGroup && !selectedTag && !selectedStatus && (
               <button
@@ -534,7 +534,7 @@ function AccountManager({ onNavigate }: AccountManagerProps) {
                 className={`px-6 py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r ${accent.gradientFrom} ${accent.gradientTo} shadow-lg ${accent.shadow} hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2 mx-auto cursor-pointer`}
               >
                 <Upload size={18} />
-                导入账号
+                Import accounts
               </button>
             )}
           </div>

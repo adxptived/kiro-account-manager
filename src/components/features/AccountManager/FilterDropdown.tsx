@@ -10,37 +10,6 @@ import { buildFilterSummaryItems, countActiveFilters } from './utils/filterDropd
 import { isPointerInsideContainer } from './utils/pointerInside'
 import React from 'react'
 
-const SUBSCRIPTION_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: 'FREE', label: 'FREE' },
-  { value: 'KIRO FREE', label: 'KIRO FREE' },
-  { value: 'KIRO PRO', label: 'KIRO PRO' },
-  { value: 'KIRO PRO+', label: 'KIRO PRO+' },
-  { value: 'KIRO POWER', label: 'KIRO POWER' },
-]
-const STATUS_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: 'normal', label: '正常' },
-  { value: 'capped', label: '封顶' },
-  { value: 'banned', label: '封禁' },
-  { value: 'invalid', label: '失效' },
-  { value: 'expired', label: '过期' },
-]
-const PROVIDER_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: 'Google', label: 'Google' },
-  { value: 'Github', label: 'Github' },
-  { value: 'BuilderId', label: 'BuilderId' },
-  { value: 'Enterprise', label: 'Enterprise' },
-]
-const USAGE_RANGE_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: '0-500', label: '0-500' },
-  { value: '500-1000', label: '500-1000' },
-  { value: '1000-2000', label: '1000-2000' },
-  { value: '2000-+', label: '2000+' },
-]
-
 interface FilterDropdownProps {
 filters: any;
 onFiltersChange: (filters: any) => void;
@@ -67,7 +36,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   )
 }
 
-function FilterField({ label, hint, active, accent, children, fullWidth = false }: any) {
+function FilterField({ label, hint, active, accent, children, fullWidth = false, t }: any) {
   return (
     <div
       className={`
@@ -89,7 +58,7 @@ function FilterField({ label, hint, active, accent, children, fullWidth = false 
         </div>
         {active && (
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${accent.bgSoft} ${accent.text}`}>
-            已设置
+            {t('filter.set')}
           </span>
         )}
       </div>
@@ -98,7 +67,7 @@ function FilterField({ label, hint, active, accent, children, fullWidth = false 
   )
 }
 
-function FilterSelect({ label, hint, value, options, onChange, onClear, accent }: any) {
+function FilterSelect({ label, hint, value, options, onChange, onClear, accent, t }: any) {
   const displayValue = Array.isArray(value) ? (value[0] || '') : (value || '')
   const hasValue = displayValue !== ''
 
@@ -108,6 +77,7 @@ function FilterSelect({ label, hint, value, options, onChange, onClear, accent }
       hint={hint}
       active={hasValue}
       accent={accent}
+      t={t}
     >
       <div className="relative">
         <select
@@ -135,7 +105,7 @@ function FilterSelect({ label, hint, value, options, onChange, onClear, accent }
               onClear?.()
             }}
             className={`cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/50 hover:bg-red-500/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/60`}
-            title="清空"
+            title={t('common.clear')}
           >
             <X size={12} className="text-red-500" strokeWidth={2.5} />
           </button>
@@ -186,6 +156,37 @@ function FilterDropdown({
     onGroupFilter?.(null)
     onTagFilter(null)
   }
+
+  const SUBSCRIPTION_OPTIONS = [
+    { value: '', label: t('filter.all') },
+    { value: 'FREE', label: 'FREE' },
+    { value: 'KIRO FREE', label: 'KIRO FREE' },
+    { value: 'KIRO PRO', label: 'KIRO PRO' },
+    { value: 'KIRO PRO+', label: 'KIRO PRO+' },
+    { value: 'KIRO POWER', label: 'KIRO POWER' },
+  ]
+  const STATUS_OPTIONS = [
+    { value: '', label: t('filter.all') },
+    { value: 'normal', label: t('filter.statusNormal') },
+    { value: 'capped', label: t('filter.statusCapped') },
+    { value: 'banned', label: t('filter.statusBanned') },
+    { value: 'invalid', label: t('filter.statusInvalid') },
+    { value: 'expired', label: t('filter.statusExpired') },
+  ]
+  const PROVIDER_OPTIONS = [
+    { value: '', label: t('filter.all') },
+    { value: 'Google', label: 'Google' },
+    { value: 'Github', label: 'Github' },
+    { value: 'BuilderId', label: 'BuilderId' },
+    { value: 'Enterprise', label: 'Enterprise' },
+  ]
+  const USAGE_RANGE_OPTIONS = [
+    { value: '', label: t('filter.all') },
+    { value: '0-500', label: '0-500' },
+    { value: '500-1000', label: '500-1000' },
+    { value: '1000-2000', label: '1000-2000' },
+    { value: '2000-+', label: '2000+' },
+  ]
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -252,12 +253,12 @@ function FilterDropdown({
                     <span className={`text-sm font-semibold text-foreground`}>{t('filter.title')}</span>
                     {activeCount > 0 && (
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${accent.bgSoft} ${accent.text}`}>
-                        {activeCount} 项生效
+                        {activeCount} active
                       </span>
                     )}
                   </div>
                   <p className={`mt-1 text-xs text-muted-foreground`}>
-                    组合分组、标签、状态和配额条件，快速收敛账号列表。
+                    Combine group, tag, status, and quota filters to narrow the account list quickly.
                   </p>
                 </div>
               </div>
@@ -268,14 +269,14 @@ function FilterDropdown({
                     className={`cursor-pointer text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/60`}
                   >
                     <X size={12} strokeWidth={2.5} />
-                    清空
+                    Clear
                   </button>
                 )}
                 <button
                   onClick={() => setOpen(false)}
                   type="button"
-                  aria-label="关闭筛选面板"
-                  title="关闭筛选面板"
+                  aria-label={t('filter.closePanel')}
+                  title={t('filter.closePanel')}
                   className={`cursor-pointer inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-muted/50 transition-all duration-200 hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 ${accent.ring}`}
                 >
                   <X size={15} strokeWidth={2.5} />
@@ -300,8 +301,8 @@ function FilterDropdown({
           <div className="p-4 space-y-4 max-h-[480px] overflow-y-auto custom-scrollbar max-w-full">
             {allTags.length > 0 && (
               <SectionCard
-                title="基础筛选"
-                subtitle="优先按标签缩小范围，适合高频定位。"
+                title={t('filter.basic')}
+                subtitle="Narrow by tag first for frequent lookups."
               >
                 <div>
                   <label className={`block text-xs font-medium text-muted-foreground mb-2`}>
@@ -311,80 +312,85 @@ function FilterDropdown({
                     tags={allTags}
                     value={selectedTag}
                     onChange={onTagFilter}
-                    placeholder={t('tags.searchPlaceholder') || '搜索标签...'}
+                    placeholder={t('tags.searchPlaceholder') || 'Search tags...'}
                     showAllOption={true}
                     showNoneOption={true}
                     allLabel={t('tags.all')}
                     noneLabel={t('tags.noTags')}
-                    hasLabel={t('tags.hasTags') || '有标签'}
+                    hasLabel={t('tags.hasTags') || 'Has tags'}
                   />
                 </div>
               </SectionCard>
             )}
 
             <SectionCard
-              title="高级筛选"
-              subtitle="按订阅、状态、登录方式、使用量和分组进一步精确收敛。"
+              title={t('filter.advanced')}
+              subtitle="Narrow further by subscription, status, provider, usage, and group."
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FilterSelect
                   label={t('filter.subscription')}
-                  hint="适合快速筛出不同套餐层级的账号。"
+                  hint="Quickly filter accounts by plan tier."
                   value={filters.subscriptions?.length > 0 ? filters.subscriptions[0] : ''}
                   options={SUBSCRIPTION_OPTIONS}
                   onChange={(value: string) => onFiltersChange({ ...filters, subscriptions: [value] })}
                   onClear={() => onFiltersChange({ ...filters, subscriptions: [] })}
                   accent={accent}
+                  t={t}
                 />
 
                 <FilterSelect
                   label={t('filter.status')}
-                  hint="查看正常、封顶、失效等当前状态。"
+                  hint="View normal, capped, invalid, and other current statuses."
                   value={filters.statuses?.length > 0 ? filters.statuses[0] : ''}
                   options={STATUS_OPTIONS}
                   onChange={(value: string) => onFiltersChange({ ...filters, statuses: [value] })}
                   onClear={() => onFiltersChange({ ...filters, statuses: [] })}
                   accent={accent}
+                  t={t}
                 />
 
                 <FilterSelect
                   label={t('filter.provider')}
-                  hint="按登录来源区分 Google、GitHub 等账号。"
+                  hint="Differentiate accounts by login provider such as Google or GitHub."
                   value={filters.providers?.length > 0 ? filters.providers[0] : ''}
                   options={PROVIDER_OPTIONS}
                   onChange={(value: string) => onFiltersChange({ ...filters, providers: [value] })}
                   onClear={() => onFiltersChange({ ...filters, providers: [] })}
                   accent={accent}
+                  t={t}
                 />
 
                 <FilterSelect
-                  label="使用量"
-                  hint="快速关注不同 usage 区间的账号。"
+                  label={t('common.usage')}
+                  hint="Quickly focus on different usage ranges."
                   value={filters.usageRange || ''}
                   options={USAGE_RANGE_OPTIONS}
                   onChange={(value: string) => onFiltersChange({ ...filters, usageRange: value })}
                   onClear={() => onFiltersChange({ ...filters, usageRange: null })}
                   accent={accent}
+                  t={t}
                 />
 
                 {allGroups.length > 0 && (
                   <FilterField
-                    label={t('groups.title') || '分组'}
-                    hint="不常用时放最后，需要时也能直接搜索或切到有/无分组。"
+                    label={t('groups.title')}
+                    hint="Less common; placed last, with search and has/no group shortcuts."
                     active={Boolean(selectedGroup)}
                     accent={accent}
                     fullWidth
+                    t={t}
                   >
                     <SearchableTagSelect
                       tags={allGroups}
                       value={selectedGroup}
                       onChange={onGroupFilter}
-                      placeholder={t('groups.searchPlaceholder') || '搜索分组...'}
+                      placeholder={t('groups.searchPlaceholder')}
                       showAllOption={true}
                       showNoneOption={true}
-                      allLabel={t('groups.all') || '全部'}
-                      noneLabel={t('groups.noGroup') || '无分组'}
-                      hasLabel={t('groups.hasGroup') || '有分组'}
+                      allLabel={t('groups.all')}
+                      noneLabel={t('groups.noGroup')}
+                      hasLabel={t('groups.hasGroup')}
                     />
                   </FilterField>
                 )}
@@ -399,14 +405,14 @@ function FilterDropdown({
                   onClick={clearAll}
                   className="cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-red-500 transition-all duration-200 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500/60"
                 >
-                  一键清空
+                  Clear all
                 </button>
               )}
               <button
                 onClick={() => setOpen(false)}
                 className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium ${accent.text} ${accent.bgSoft} transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2 ${accent.ring}`}
               >
-                完成
+                Done
               </button>
             </div>
           </div>

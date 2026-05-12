@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { sessionApi } from '@/api/sessionApi'
 import { SessionSummary, IdeSession } from '@/types/session'
 import { Card } from '@/components/ui/card'
@@ -14,6 +16,7 @@ import { useDialog } from '@/contexts/DialogContext'
 import { showSuccess, showError, showWarning } from '@/utils/toast'
 
 export default function SessionManager() {
+  const { t } = useTranslation()
   const { showConfirm } = useDialog()
   const [workspaces, setWorkspaces] = useState<string[]>([])
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null)
@@ -52,7 +55,7 @@ export default function SessionManager() {
       setWorkspaceSessions(prev => new Map(prev).set(workspaceHash, data))
     } catch (error) {
       console.error('Failed to load sessions:', error)
-      showError('加载会话列表失败：' + error)
+      showError(t('session.loadSessionsFailed') + error)
     }
   }
 
@@ -78,7 +81,7 @@ export default function SessionManager() {
       setWorkspaces(data)
     } catch (error) {
       console.error('Failed to load workspaces:', error)
-      showError('加载工作区失败：' + error)
+      showError(t('session.loadWorkspacesFailed') + error)
     } finally {
       setLoading(false)
     }
@@ -97,7 +100,7 @@ export default function SessionManager() {
       setSelectedSession(data)
     } catch (error) {
       console.error('Failed to load session:', error)
-      showError('加载失败：' + error)
+      showError(t('session.loadFailed') + error)
     } finally {
       setLoading(false)
     }
@@ -107,8 +110,8 @@ export default function SessionManager() {
     const workspaceName = decodeWorkspaceName(workspaceHash)
 
     const confirmed = await showConfirm(
-      '删除工作区',
-      `确定要删除工作区 "${workspaceName}" 及其所有会话吗？\n\n此操作不可恢复！`
+      t('session.deleteWorkspace'),
+      t('session.deleteWorkspaceConfirm', { name: workspaceName })
     )
 
     if (!confirmed) return
@@ -138,10 +141,10 @@ export default function SessionManager() {
         setSelectedSession(null)
       }
 
-      showSuccess(`成功删除工作区 "${workspaceName}"`)
+      showSuccess(t('session.workspaceDeleted', { name: workspaceName }))
     } catch (error) {
       console.error('Failed to delete workspace:', error)
-      showError('删除工作区失败：' + error)
+      showError(t('session.deleteWorkspaceFailed') + error)
     } finally {
       setLoading(false)
     }
@@ -149,8 +152,8 @@ export default function SessionManager() {
 
   const handleDeleteSession = async (workspaceHash: string, session: SessionSummary) => {
     const confirmed = await showConfirm(
-      '删除会话',
-      `确定要删除会话 "${session.title}" 吗？`
+      t('session.deleteSession'),
+      t('session.deleteSessionConfirm', { title: session.title })
     )
 
     if (!confirmed) return
@@ -165,10 +168,10 @@ export default function SessionManager() {
       if (selectedSession?.sessionId === session.sessionId) {
         setSelectedSession(null)
       }
-      showSuccess('会话已删除')
+      showSuccess(t('session.sessionDeleted'))
     } catch (error) {
       console.error('Failed to delete session:', error)
-      showError('删除失败：' + error)
+      showError(t('session.deleteFailed') + error)
     }
   }
 
@@ -192,7 +195,7 @@ export default function SessionManager() {
 
   const handleBatchDeleteWorkspaces = async () => {
     if (selectedWorkspaceHashes.size === 0) {
-      showWarning('请先选择要删除的工作区')
+      showWarning(t('session.selectWorkspacesFirst'))
       return
     }
 
@@ -201,8 +204,11 @@ export default function SessionManager() {
       .join('、')
 
     const confirmed = await showConfirm(
-      '批量删除工作区',
-      `确定要删除选中的 ${selectedWorkspaceHashes.size} 个工作区及其所有会话吗？\n\n工作区：${workspaceNames}\n\n此操作不可恢复！`
+      t('session.batchDeleteWorkspaces'),
+      t('session.batchDeleteConfirm', {
+        count: selectedWorkspaceHashes.size,
+        names: workspaceNames
+      })
     )
 
     if (!confirmed) return
@@ -225,10 +231,10 @@ export default function SessionManager() {
       setSelectedWorkspace(null)
       setSelectedSession(null)
 
-      showSuccess(`成功删除 ${selectedWorkspaceHashes.size} 个工作区`)
+      showSuccess(t('session.workspacesDeleted', { count: selectedWorkspaceHashes.size }))
     } catch (error) {
       console.error('Failed to batch delete workspaces:', error)
-      showError('批量删除失败：' + error)
+      showError(t('session.batchDeleteFailed') + error)
     } finally {
       setLoading(false)
     }
@@ -248,7 +254,7 @@ export default function SessionManager() {
       }
 
       if (!workspaceHash) {
-        showError('无法找到会话所属的工作区')
+        showError(t('session.cannotFindWorkspace'))
         return
       }
 
@@ -271,11 +277,11 @@ export default function SessionManager() {
 
       if (filePath) {
         await writeTextFile(filePath, content)
-        showSuccess('导出成功！')
+        showSuccess(t('session.exportSuccess'))
       }
     } catch (error) {
       console.error('Failed to export session:', error)
-      showError('导出失败：' + error)
+      showError(t('session.exportFailed') + error)
     }
   }
 
@@ -293,7 +299,7 @@ export default function SessionManager() {
 
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return '-'
-    return new Date(timestamp * 1000).toLocaleString('zh-CN')
+    return new Date(timestamp * 1000).toLocaleString(i18n.language)
   }
 
   // 获取工作区的会话列表
@@ -305,9 +311,9 @@ export default function SessionManager() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-6 border-b">
-        <h1 className="text-2xl font-bold">会话管理</h1>
+        <h1 className="text-2xl font-bold">{t('session.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          管理 Kiro IDE 的 chat sessions
+          {t('session.subtitle')}
         </p>
       </div>
 
@@ -316,7 +322,7 @@ export default function SessionManager() {
         <div className="w-80 border-r flex flex-col">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold">工作区与会话</h2>
+              <h2 className="font-semibold">{t('session.workspacesAndSessions')}</h2>
               {selectedWorkspaceHashes.size > 0 && (
                 <Button
                   variant="destructive"
@@ -324,12 +330,12 @@ export default function SessionManager() {
                   onClick={handleBatchDeleteWorkspaces}
                 >
                   <Trash2 className="h-3 w-3 mr-1" />
-                  删除 ({selectedWorkspaceHashes.size})
+                  {t('session.delete')} ({selectedWorkspaceHashes.size})
                 </Button>
               )}
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-              <span>{workspaces.length} 个工作区</span>
+              <span>{workspaces.length} {t('session.workspaces')}</span>
               {workspaces.length > 0 && (
                 <Button
                   variant="ghost"
@@ -337,7 +343,7 @@ export default function SessionManager() {
                   className="h-6 px-2"
                   onClick={toggleSelectAllWorkspaces}
                 >
-                  {selectedWorkspaceHashes.size === workspaces.length ? '取消全选' : '全选'}
+                  {selectedWorkspaceHashes.size === workspaces.length ? t('session.deselectAll') : t('session.selectAll')}
                 </Button>
               )}
             </div>
@@ -345,7 +351,7 @@ export default function SessionManager() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索会话..."
+                placeholder={t('session.searchSessions')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -360,7 +366,7 @@ export default function SessionManager() {
                 <div className="space-y-2">
                   {filteredSessions.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm">
-                      未找到匹配的会话
+                      {t('session.noMatchingSessions')}
                     </div>
                   ) : (
                     filteredSessions.map(session => (
@@ -388,7 +394,7 @@ export default function SessionManager() {
                                 e.stopPropagation()
                                 handleDeleteSession(session.workspaceHash, session)
                               }}
-                              title="删除会话"
+                              title={t('session.deleteSession')}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -412,7 +418,7 @@ export default function SessionManager() {
                 </div>
               )}
 
-              {/* 正常模式：显示工作区树 */}
+              {/* Active模式：显示工作区树 */}
               {!searchQuery && workspaces.map(workspace => {
                 const isExpanded = expandedWorkspaces.has(workspace)
                 const sessions = getWorkspaceSessions(workspace)
@@ -431,7 +437,7 @@ export default function SessionManager() {
                         <button
                           onClick={() => toggleWorkspace(workspace)}
                           className="shrink-0 hover:bg-accent rounded p-1"
-                          title={isExpanded ? '折叠' : '展开'}
+                          title={isExpanded ? t('session.collapse') : t('session.expand')}
                         >
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
@@ -464,7 +470,7 @@ export default function SessionManager() {
                           </div>
                           {isExpanded && sessions.length > 0 && (
                             <div className="text-xs opacity-70 mt-0.5">
-                              {sessions.length} 个会话
+                              {sessions.length} {t('session.sessions')}
                             </div>
                           )}
                         </button>
@@ -481,7 +487,7 @@ export default function SessionManager() {
                             e.stopPropagation()
                             handleDeleteWorkspace(workspace)
                           }}
-                          title="删除工作区"
+                          title={t('session.deleteWorkspace')}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -497,7 +503,7 @@ export default function SessionManager() {
                           </div>
                         ) : sessions.length === 0 ? (
                           <div className="text-xs text-muted-foreground py-2 px-3">
-                            暂无会话
+                            {t('session.noSessions')}
                           </div>
                         ) : (
                           sessions.map(session => (
@@ -520,7 +526,7 @@ export default function SessionManager() {
                                       e.stopPropagation()
                                       handleDeleteSession(workspace, session)
                                     }}
-                                    title="删除会话"
+                                    title={t('session.deleteSession')}
                                   >
                                     <Trash2 className="h-2.5 w-2.5" />
                                   </Button>
@@ -596,7 +602,7 @@ export default function SessionManager() {
                           <div className="text-2xl shrink-0">📝</div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium mb-2 text-blue-900 dark:text-blue-100">
-                              对话摘要（上下文压缩）
+                              {t('session.conversationSummary')}
                             </div>
                             <div className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap break-words">
                               {selectedSession.history[0].message.content[0].text}
@@ -609,7 +615,7 @@ export default function SessionManager() {
                   {/* Messages */}
                   {selectedSession.history.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      此会话没有消息
+                      {t('session.sessionHasNoMessages')}
                     </div>
                   ) : (
                     selectedSession.history.map((item, index) => {
@@ -653,7 +659,7 @@ export default function SessionManager() {
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">选择一个会话查看详情</p>
+                <p className="text-muted-foreground">{t('session.selectSessionToView')}</p>
               </div>
             </div>
           )}

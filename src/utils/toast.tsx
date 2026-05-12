@@ -106,7 +106,7 @@ export const showInfo = (message, options = {}) => {
 /**
  * 加载提示
  */
-export const showLoading = (message = '加载中...', options = {}) => {
+export const showLoading = (message = 'Loading...', options = {}) => {
   return toast.loading(message, {
     position: 'top-center',
     style: {
@@ -124,9 +124,9 @@ export const showPromise = (promise, messages: any = {}) => {
   return toast.promise(
     promise,
     {
-      loading: messages.loading || '处理中...',
-      success: messages.success || '操作成功',
-      error: messages.error || '操作失败'},
+      loading: messages.loading || 'Processing...',
+      success: messages.success || 'Operation successful',
+      error: messages.error || 'Operation failed'},
     {
       position: 'top-center',
       style: {

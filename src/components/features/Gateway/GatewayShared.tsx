@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface GatewaySurfaceCardProps extends React.HTMLAttributes<HTMLDivElement> {
   colors?: Record<string, string>;
@@ -84,10 +85,13 @@ interface GatewayPathCardProps {
   actions?: React.ReactNode;
 }
 
-export function GatewayPathCard({ title = '日志目录', value, actions }: GatewayPathCardProps) {
+export function GatewayPathCard({ title, value, actions }: GatewayPathCardProps) {
+  const { t } = useTranslation()
+  const displayTitle = title || t('gateway.logDirectory')
+
   return (
     <GatewaySubCard>
-      <p className="text-xs font-semibold">{title}</p>
+      <p className="text-xs font-semibold">{displayTitle}</p>
       <p className="text-xs mt-1.5 font-mono break-all">
         {value}
       </p>

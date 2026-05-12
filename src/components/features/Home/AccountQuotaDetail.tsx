@@ -23,7 +23,7 @@ function AccountQuotaDetail({
   t
 }) {
   const accent = useMemo(() => getThemeAccent(theme), [theme])
-  
+
   const usageData = currentAccount.usageData
   const breakdown = usageData?.usageBreakdownList?.[0] || usageData?.usageBreakdown
   const subInfo = usageData?.subscriptionInfo
@@ -35,19 +35,19 @@ function AccountQuotaDetail({
   const mainLimit = breakdown?.usageLimit ?? 0
   const mainPercent = mainLimit > 0 ? Math.round((mainUsed / mainLimit) * 100) : 0
   const nextDateReset = usageData?.nextDateReset
-  const isTrial = subInfo?.subscriptionTitle?.toLowerCase()?.includes('trial') || 
+  const isTrial = subInfo?.subscriptionTitle?.toLowerCase()?.includes('trial') ||
                   subInfo?.subscriptionTitle?.toLowerCase()?.includes('free')
-  
+
   // 计算剩余天数
   let daysUntilReset = null
   let resetTimestamp = null
-  
+
   if (isTrial && freeTrial?.freeTrialExpiry) {
     resetTimestamp = freeTrial.freeTrialExpiry
   } else if (nextDateReset) {
     resetTimestamp = nextDateReset
   }
-  
+
   if (resetTimestamp) {
     const resetDate = new Date(resetTimestamp * 1000)
     const now = new Date()
@@ -199,8 +199,8 @@ function MonthlyUsageProgress({ currentPercent, currentUsed, currentQuota, accen
           {t('home.monthlyUsage')}
         </Text>
         <Group gap="xs">
-          <Text 
-            size="lg" 
+          <Text
+            size="lg"
             fw={700}
             className={getPercentColorClass()}
           >
@@ -240,8 +240,8 @@ function SubscriptionDetails({ subInfo, overageConfig, colors, t }) {
         </Group>
         <Group justify="space-between">
           <Text size="xs" className={"text-muted-foreground"}>{t('home.overage')}</Text>
-          <Text 
-            size="xs" 
+          <Text
+            size="xs"
             className={subInfo.overageCapability === 'OVERAGE_CAPABLE' ? colors.iconSuccess : "text-muted-foreground"}
           >
             {subInfo.overageCapability === 'OVERAGE_CAPABLE' ? '✓' : '✗'}
@@ -249,7 +249,7 @@ function SubscriptionDetails({ subInfo, overageConfig, colors, t }) {
         </Group>
         <Group justify="space-between">
           <Text size="xs" className={"text-muted-foreground"}>{t('home.upgrade')}</Text>
-          <Text 
+          <Text
             size="xs"
             className={subInfo.upgradeCapability === 'UPGRADE_CAPABLE' ? colors.iconSuccess : "text-muted-foreground"}
           >
@@ -259,7 +259,7 @@ function SubscriptionDetails({ subInfo, overageConfig, colors, t }) {
         {overageConfig && (
           <Group justify="space-between">
             <Text size="xs" className={"text-muted-foreground"}>{t('home.status')}</Text>
-            <Text 
+            <Text
               size="xs"
               className={overageConfig.overageStatus === 'ENABLED' ? colors.iconSuccess : "text-muted-foreground"}
             >
@@ -300,7 +300,7 @@ function AccountInfo({ currentAccount, userInfo, breakdown, nextDateReset, accen
         {breakdown?.overageRate && (
           <Group justify="space-between">
             <Text size="xs" className={"text-muted-foreground"}>{t('home.rate')}</Text>
-            <Text size="xs" className={"text-foreground"}>${breakdown.overageRate}/次</Text>
+            <Text size="xs" className={"text-foreground"}>${breakdown.overageRate}/time</Text>
           </Group>
         )}
         <Group justify="space-between">
@@ -347,15 +347,15 @@ function QuotaBreakdown({ mainUsed, mainLimit, mainPercent, freeTrial, bonuses, 
           />
         )}
 
-        {/* 奖励额度 */}
+        {/* Bonus额度 */}
         {bonuses.map((bonus, idx) => (
           <QuotaRow
             key={idx}
-            label={bonus.displayName?.substring(0, 4) || `奖励${idx+1}`} 
-            used={Math.round(bonus.currentUsage ?? 0)} 
-            limit={Math.round(bonus.usageLimit ?? 0)} 
+            label={bonus.displayName?.substring(0, 4) || `Bonus${idx+1}`}
+            used={Math.round(bonus.currentUsage ?? 0)}
+            limit={Math.round(bonus.usageLimit ?? 0)}
             percent={bonus.usageLimit > 0 ? ((bonus.currentUsage ?? 0) / bonus.usageLimit * 100) : 0}
-            color="amber" 
+            color="amber"
             expiry={bonus.expiresAt}
             accent={accent}
             colors={colors}
@@ -370,22 +370,22 @@ function QuotaBreakdown({ mainUsed, mainLimit, mainPercent, freeTrial, bonuses, 
 // 额度行
 function QuotaRow({ label, used, limit, percent, color, expiry, accent, colors, t }) {
   const colorMap = {
-    blue: { 
-      dot: accent.solidBg, 
-      bar: accent.solidBg, 
-      text: "text-muted-foreground", 
+    blue: {
+      dot: accent.solidBg,
+      bar: accent.solidBg,
+      text: "text-muted-foreground",
       barBg: "bg-muted/30"
     },
-    purple: { 
-      dot: accent.solidBg, 
-      bar: accent.solidBg, 
-      text: accent.text, 
+    purple: {
+      dot: accent.solidBg,
+      bar: accent.solidBg,
+      text: accent.text,
       barBg: "bg-purple-500/10 text-purple-500"
     },
-    amber: { 
-      dot: 'bg-amber-500', 
-      bar: 'bg-amber-500', 
-      text: 'text-amber-600', 
+    amber: {
+      dot: 'bg-amber-500',
+      bar: 'bg-amber-500',
+      text: 'text-amber-600',
       barBg: "warning-badge"
     }
   }
@@ -395,7 +395,7 @@ function QuotaRow({ label, used, limit, percent, color, expiry, accent, colors, 
   return (
     <div className="flex items-center gap-2">
       <div className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
-      <span className={`text-xs ${c.text} w-14 shrink-0`} title={expiryStr ? `${expiryStr} ${t?.('home.expires') || '到期'}` : ''}>{label}</span>
+      <span className={`text-xs ${c.text} w-14 shrink-0`} title={expiryStr ? `${expiryStr} ${t?.('home.expires') || t('home.expires')}` : ''}>{label}</span>
       <div className={`flex-1 h-1.5 ${c.barBg} rounded-full overflow-hidden`}>
         <div className={`h-full rounded-full ${c.bar} transition-all`} style={{ width: `${percent}%` }} />
       </div>

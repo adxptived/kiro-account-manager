@@ -1,4 +1,5 @@
 import { Activity, AlertTriangle, ChevronDown, ChevronUp, FolderOpen, Radio, RefreshCw, Search, Shield } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,24 +52,25 @@ interface GatewayObservabilityProps {
 }
 
 function GatewayErrorHistoryCard({ errorHistory }: { errorHistory: ErrorHistoryItem[] }) {
+  const { t } = useTranslation()
   const entries = errorHistory.length
     ? errorHistory
-    : [{ message: '暂无流式错误', firstSeenAt: '-', lastSeenAt: '-', count: 1 }]
+    : [{ message: t('gateway.noStreamingErrors'), firstSeenAt: '-', lastSeenAt: '-', count: 1 }]
 
   return (
-    <GatewayCodeCard title="流式 / 上游错误明细">
+    <GatewayCodeCard title={t('gateway.streamingUpstreamErrors')}>
       <div className="flex flex-col gap-1.5 mt-2">
         {entries.map((item, idx) => (
           <GatewaySubCard key={`${item.message}-${idx}`}>
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} />
-                <div className="text-sm font-semibold">错误命中 {item.count} 次</div>
+                <div className="text-sm font-semibold">{t('gateway.errorHit')} {item.count} {t('gateway.times')}</div>
               </div>
               <Badge variant="secondary">{item.lastSeenAt}</Badge>
             </div>
             <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-              {`首次: ${item.firstSeenAt}\n最近: ${item.lastSeenAt}\n次数: ${item.count}\n${item.message}`}
+              {`${t('gateway.firstSeen')}: ${item.firstSeenAt}\n${t('gateway.lastSeen')}: ${item.lastSeenAt}\n${t('gateway.count')}: ${item.count}\n${item.message}`}
             </pre>
           </GatewaySubCard>
         ))}
@@ -103,6 +105,7 @@ function GatewayObservability({
   requestLogSummary,
   requestMetrics,
   filteredRequestLogs}: GatewayObservabilityProps) {
+  const { t } = useTranslation()
   // Local state for immediate input feedback
   const [searchInput, setSearchInput] = useState(requestLogQuery)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -146,39 +149,39 @@ function GatewayObservability({
             <GatewaySectionHeader
               colors={colors}
               icon={Shield}
-              title="观测总览"
+              title={t('gateway.observabilityOverview')}
               actions={(
                 <div className="flex items-center gap-2">
                   <Badge variant="default" className="flex items-center gap-1">
                     <Radio size={12} />
-                    {`账号池 ${effectiveConfig.strategy}`}
+                    {`${t('gateway.accountPool')} ${effectiveConfig.strategy}`}
                   </Badge>
-                  <Badge variant={effectiveConfig.localOnly ? 'default' : 'secondary'}>{effectiveConfig.localOnly ? '仅本机' : '允许远程'}</Badge>
-                  <Badge variant={status.running ? 'default' : 'destructive'}>{status.running ? '运行中' : '已停止'}</Badge>
+                  <Badge variant={effectiveConfig.localOnly ? 'default' : 'secondary'}>{effectiveConfig.localOnly ? t('gateway.localOnly') : t('gateway.allowRemote')}</Badge>
+                  <Badge variant={status.running ? 'default' : 'destructive'}>{status.running ? t('gateway.running') : t('gateway.stopped')}</Badge>
                   <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
                     <RefreshCw size={14} className={`mr-1 ${loading ? 'animate-spin' : ''}`} />
-                    刷新状态
+                    {t('gateway.refreshStatus')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleClearErrors} disabled={!errorHistory.length}>
-                    清空错误
+                    {t('gateway.clearErrors')}
                   </Button>
                 </div>
               )}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <GatewayStatCard colors={colors} label="监听地址" value={statusSummary.listen} />
-              <GatewayStatCard colors={colors} label="请求计数" value={statusSummary.requests} />
-              <GatewayStatCard colors={colors} label="路由策略" value={statusSummary.routing} />
-              <GatewayStatCard colors={colors} label="暴露范围" value={statusSummary.exposure} />
-              <GatewayStatCard colors={colors} label="Region / 日志级别" value={`${statusSummary.region} / ${statusSummary.logLevel}`} />
-              <GatewayStatCard colors={colors} label="最后同步" value={statusSummary.sync} />
+              <GatewayStatCard colors={colors} label={t('gateway.listenAddress')} value={statusSummary.listen} />
+              <GatewayStatCard colors={colors} label={t('gateway.requestCount')} value={statusSummary.requests} />
+              <GatewayStatCard colors={colors} label={t('gateway.routingStrategy')} value={statusSummary.routing} />
+              <GatewayStatCard colors={colors} label={t('gateway.exposureScope')} value={statusSummary.exposure} />
+              <GatewayStatCard colors={colors} label={t('gateway.regionLogLevel')} value={`${statusSummary.region} / ${statusSummary.logLevel}`} />
+              <GatewayStatCard colors={colors} label={t('gateway.lastSync')} value={statusSummary.sync} />
             </div>
 
             <Alert>
-              <AlertTitle>运行摘要</AlertTitle>
+              <AlertTitle>{t('gateway.runtimeSummary')}</AlertTitle>
               <AlertDescription>
-                {`错误历史 ${statusSummary.errorCount}，当前${status.running ? '已启动' : '未启动'}，${hasUnsavedChanges ? '页面存在未保存变更。' : '页面配置已与已保存状态同步。'}`}
+                {`${t('gateway.errorHistory')} ${statusSummary.errorCount}，${t('gateway.currently')}${status.running ? t('gateway.started') : t('gateway.notStarted')}，${hasUnsavedChanges ? t('gateway.pageHasUnsavedChanges') : t('gateway.pageConfigSyncedStatus')}`}
               </AlertDescription>
             </Alert>
 
@@ -187,24 +190,24 @@ function GatewayObservability({
               <GatewaySubCard>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold">Prompt Caching</div>
-                    <Badge variant="default" className="text-xs">节省 {requestLogSummary.costSavings}%</Badge>
+                    <div className="text-sm font-semibold">{t('gateway.promptCaching')}</div>
+                    <Badge variant="default" className="text-xs">{t('gateway.savings')} {requestLogSummary.costSavings}%</Badge>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">命中率</span>
+                      <span className="text-muted-foreground">{t('gateway.hitRate')}</span>
                       <span className="font-semibold">{requestLogSummary.cacheHitRate}%</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">读</span>
+                      <span className="text-muted-foreground">{t('gateway.read')}</span>
                       <span className="font-semibold text-green-600">{requestLogSummary.totalCacheReadTokens.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">写</span>
+                      <span className="text-muted-foreground">{t('gateway.write')}</span>
                       <span className="font-semibold">{requestLogSummary.totalCacheCreationTokens.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">I/O</span>
+                      <span className="text-muted-foreground">{t('gateway.io')}</span>
                       <span className="font-semibold">{requestLogSummary.totalInputTokens.toLocaleString()}/{requestLogSummary.totalOutputTokens.toLocaleString()}</span>
                     </div>
                   </div>
@@ -215,13 +218,13 @@ function GatewayObservability({
             <GatewaySubCard>
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <div className="text-sm font-semibold">运维建议</div>
+                  <div className="text-sm font-semibold">{t('gateway.opsSuggestions')}</div>
                   <Badge variant={filteredRequestLogSummary.errors ? 'secondary' : 'default'}>
-                    {filteredRequestLogSummary.errors ? '优先看错误明细' : '优先看请求趋势'}
+                    {filteredRequestLogSummary.errors ? t('gateway.priorityErrorDetails') : t('gateway.priorityRequestTrends')}
                   </Badge>
                 </div>
                 <div className={`text-sm text-muted-foreground`}>
-                  先看顶部指标判断是否是整体异常，再结合错误聚合确认是鉴权、限流、上游返回还是流式中断；最后下钻到最近请求明细核对状态码、模型、Region、上游来源与错误信息。
+                  {t('gateway.opsSuggestionsDesc')}
                 </div>
               </div>
             </GatewaySubCard>
@@ -232,21 +235,21 @@ function GatewayObservability({
           <div className="flex flex-col gap-3">
             <GatewaySectionHeader
               colors={colors}
-              title="运维与排障"
+              title={t('gateway.operationsTroubleshooting')}
               badge={<Badge variant={errorHistory.length ? 'secondary' : 'default'}>{integrationSummary.errorDigest}</Badge>}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <GatewayStatCard colors={colors} label="日志状态" value={integrationSummary.logDirState} />
-              <GatewayStatCard colors={colors} label="错误摘要" value={integrationSummary.errorDigest} />
+              <GatewayStatCard colors={colors} label={t('gateway.logStatus')} value={integrationSummary.logDirState} />
+              <GatewayStatCard colors={colors} label={t('gateway.errorDigest')} value={integrationSummary.errorDigest} />
             </div>
 
             <GatewayPathCard
-              value={logDir || '尚未获取'}
+              value={logDir || t('gateway.notYetRetrieved')}
               actions={(
                 <Button variant="outline" onClick={handleOpenLogDir}>
                   <FolderOpen size={16} className="mr-1" />
-                  打开日志目录
+                  {t('gateway.openLogDir')}
                 </Button>
               )}
             />
@@ -262,7 +265,7 @@ function GatewayObservability({
             <GatewaySectionHeader
               colors={colors}
               icon={Activity}
-              title="请求日志"
+              title={t('gateway.requestLogs')}
               actions={(
                 <div className="flex items-center gap-2">
                   <Badge variant="default">gateway-request-log.jsonl</Badge>
@@ -273,7 +276,7 @@ function GatewayObservability({
                     disabled={requestLogsLoading}
                   >
                     <RefreshCw size={14} className={`mr-1 ${requestLogsLoading ? 'animate-spin' : ''}`} />
-                    刷新日志
+                    {t('gateway.refreshLogs')}
                   </Button>
                   <Button
                     variant="outline"
@@ -281,7 +284,7 @@ function GatewayObservability({
                     onClick={handleClearRequestLogs}
                     disabled={requestLogsLoading || !requestLogs.length}
                   >
-                    清空日志
+                    {t('gateway.clearLogs')}
                   </Button>
                   <Button
                     variant="outline"
@@ -289,38 +292,38 @@ function GatewayObservability({
                     onClick={handleOpenLogDir}
                   >
                     <FolderOpen size={14} className="mr-1" />
-                    打开目录
+                    {t('gateway.openDirectory')}
                   </Button>
                 </div>
               )}
             />
 
             <div className={`text-sm text-muted-foreground`}>
-              这里展示最近 120 条反代请求记录，按时间倒序读取本地 JSONL 文件。最后同步时间：{lastRequestLogsSyncAt}
+              {t('gateway.logsDescription')} {lastRequestLogsSyncAt}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="outcome-filter">结果过滤</Label>
+                <Label htmlFor="outcome-filter">{t('gateway.outcomeFilter')}</Label>
                 <Select value={requestLogOutcome} onValueChange={(value) => setRequestLogOutcome(value || 'all')}>
                   <SelectTrigger id="outcome-filter">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">全部结果</SelectItem>
-                    <SelectItem value="success">仅成功</SelectItem>
-                    <SelectItem value="stream">仅流式</SelectItem>
-                    <SelectItem value="error">仅错误</SelectItem>
+                    <SelectItem value="all">{t('gateway.allResults')}</SelectItem>
+                    <SelectItem value="success">{t('gateway.successOnly')}</SelectItem>
+                    <SelectItem value="stream">{t('gateway.streamingOnly')}</SelectItem>
+                    <SelectItem value="error">{t('gateway.errorOnly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="query-search">关键词搜索</Label>
+                <Label htmlFor="query-search">{t('gateway.keywordSearch')}</Label>
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="query-search"
-                    placeholder="搜索模型、端点、IP、错误、上游来源或 Region"
+                    placeholder={t('gateway.searchPlaceholder')}
                     value={searchInput}
                     onChange={handleSearchChange}
                     className="pl-9"
@@ -330,21 +333,21 @@ function GatewayObservability({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-              <GatewayStatCard colors={colors} label="显示中 / 总记录" value={`${filteredRequestLogSummary.total} / ${requestLogSummary.total}`} />
-              <GatewayStatCard colors={colors} label="成功 / 流式" value={`${filteredRequestLogSummary.success} / ${filteredRequestLogSummary.streaming}`} />
-              <GatewayStatCard colors={colors} label="错误数" value={filteredRequestLogSummary.errors} />
-              <GatewayStatCard colors={colors} label="最新记录 / 最长耗时" value={filteredRequestLogSummary.latestOccurredAt} detail={filteredRequestLogSummary.maxDurationLabel} />
+              <GatewayStatCard colors={colors} label={t('gateway.displayingTotal')} value={`${filteredRequestLogSummary.total} / ${requestLogSummary.total}`} />
+              <GatewayStatCard colors={colors} label={t('gateway.successStreaming')} value={`${filteredRequestLogSummary.success} / ${filteredRequestLogSummary.streaming}`} />
+              <GatewayStatCard colors={colors} label={t('gateway.errorCount')} value={filteredRequestLogSummary.errors} />
+              <GatewayStatCard colors={colors} label={t('gateway.latestRecordMaxDuration')} value={filteredRequestLogSummary.latestOccurredAt} detail={filteredRequestLogSummary.maxDurationLabel} />
             </div>
 
-            <GatewayPathCard value={logDir || '尚未获取'} />
+            <GatewayPathCard value={logDir || t('gateway.notYetRetrieved')} />
 
             {/* 请求明细表格 */}
             <div className="flex flex-col gap-3 pt-2">
               <div className="flex justify-between items-center">
-                <div className="text-sm font-semibold">请求明细</div>
+                <div className="text-sm font-semibold">{t('gateway.requestDetails')}</div>
                 <div className="flex items-center gap-2">
                   <Badge variant={filteredRequestLogSummary.errors ? 'destructive' : 'default'}>
-                    {filteredRequestLogSummary.errors ? `${filteredRequestLogSummary.errors} 条错误` : '无错误记录'}
+                    {filteredRequestLogSummary.errors ? `${filteredRequestLogSummary.errors} ${t('gateway.errorRecords')}` : t('gateway.noErrorRecords')}
                   </Badge>
                   <Button
                     variant="ghost"
@@ -361,11 +364,11 @@ function GatewayObservability({
                 <>
                   {!filteredRequestLogs.length ? (
                     <Alert>
-                      <AlertTitle>暂无请求日志</AlertTitle>
+                      <AlertTitle>{t('gateway.noRequestLogs')}</AlertTitle>
                       <AlertDescription>
                         {requestLogs.length
-                          ? '当前筛选条件下没有匹配结果，请调整结果过滤或搜索关键词。'
-                          : '当前还没有反代请求写入本地日志文件。启动反代并发起请求后,这里会显示最新记录。'}
+                          ? t('gateway.noMatchingResults')
+                          : t('gateway.noLogsWritten')}
                       </AlertDescription>
                     </Alert>
                   ) : (
@@ -384,29 +387,29 @@ function GatewayObservability({
               <div className="flex items-center gap-2">
                 <div className="w-1 h-5 bg-primary rounded-full"></div>
                 <Radio size={18} className="text-primary" />
-                <div className="text-base font-semibold text-foreground">统计视图</div>
+                <div className="text-base font-semibold text-foreground">{t('gateway.statisticsView')}</div>
               </div>
               <Badge variant={requestMetrics.errorRateLabel === '0%' ? 'default' : 'secondary'} className="text-xs">
-                成功率 {requestMetrics.successRateLabel} / 错误率 {requestMetrics.errorRateLabel}
+                {t('gateway.successRate')} {requestMetrics.successRateLabel} / {t('gateway.errorRateLabel')} {requestMetrics.errorRateLabel}
               </Badge>
             </div>
 
             {/* 关键指标 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="border rounded-lg p-4 bg-gradient-to-br from-muted/30 to-muted/10 hover:shadow-sm transition-shadow">
-                <div className="text-xs text-muted-foreground mb-1.5">平均耗时</div>
+                <div className="text-xs text-muted-foreground mb-1.5">{t('gateway.avgDuration')}</div>
                 <div className="text-xl font-bold text-foreground">{requestMetrics.avgDurationLabel}</div>
               </div>
               <div className="border rounded-lg p-4 bg-gradient-to-br from-muted/30 to-muted/10 hover:shadow-sm transition-shadow">
-                <div className="text-xs text-muted-foreground mb-1.5">模型数</div>
+                <div className="text-xs text-muted-foreground mb-1.5">{t('gateway.modelCount')}</div>
                 <div className="text-xl font-bold text-foreground">{requestMetrics.uniqueModels}</div>
               </div>
               <div className="border rounded-lg p-4 bg-gradient-to-br from-muted/30 to-muted/10 hover:shadow-sm transition-shadow">
-                <div className="text-xs text-muted-foreground mb-1.5">上游来源数</div>
+                <div className="text-xs text-muted-foreground mb-1.5">{t('gateway.upstreamSourceCount')}</div>
                 <div className="text-xl font-bold text-foreground">{requestMetrics.uniqueUpstreams}</div>
               </div>
               <div className="border rounded-lg p-4 bg-gradient-to-br from-muted/30 to-muted/10 hover:shadow-sm transition-shadow">
-                <div className="text-xs text-muted-foreground mb-1.5">统计样本</div>
+                <div className="text-xs text-muted-foreground mb-1.5">{t('gateway.statisticalSample')}</div>
                 <div className="text-xl font-bold text-foreground">{requestMetrics.total}</div>
               </div>
             </div>
@@ -418,12 +421,12 @@ function GatewayObservability({
                 <div className="bg-muted/50 px-4 py-3 border-b">
                   <div className="text-sm font-semibold flex items-center gap-2">
                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                    热门模型
+                    {t('gateway.topModels')}
                   </div>
                 </div>
                 <div className="p-5">
                   {requestMetrics.topModels.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground text-sm">暂无统计</div>
+                    <div className="text-center py-6 text-muted-foreground text-sm">{t('gateway.noStatistics')}</div>
                   ) : (
                     <div className="space-y-3">
                       {requestMetrics.topModels.map((item: any, idx: number) => (
@@ -439,12 +442,12 @@ function GatewayObservability({
                 <div className="bg-muted/50 px-4 py-3 border-b">
                   <div className="text-sm font-semibold flex items-center gap-2">
                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                    热门上游来源
+                    {t('gateway.topUpstreamSources')}
                   </div>
                 </div>
                 <div className="p-5">
                   {requestMetrics.topUpstreams.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground text-sm">暂无统计</div>
+                    <div className="text-center py-6 text-muted-foreground text-sm">{t('gateway.noStatistics')}</div>
                   ) : (
                     <div className="space-y-3">
                       {requestMetrics.topUpstreams.map((item: any, idx: number) => (
@@ -460,12 +463,12 @@ function GatewayObservability({
                 <div className="bg-muted/50 px-4 py-3 border-b">
                   <div className="text-sm font-semibold flex items-center gap-2">
                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                    状态码分布
+                    {t('gateway.statusCodeDistribution')}
                   </div>
                 </div>
                 <div className="p-5">
                   {requestMetrics.topStatuses.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground text-sm">暂无统计</div>
+                    <div className="text-center py-6 text-muted-foreground text-sm">{t('gateway.noStatistics')}</div>
                   ) : (
                     <div className="space-y-3">
                       {requestMetrics.topStatuses.map((item: any, idx: number) => {
@@ -493,7 +496,7 @@ function GatewayObservability({
                 <div className="bg-muted/50 px-4 py-3 border-b">
                   <div className="text-sm font-semibold flex items-center gap-2">
                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                    端点 & Region
+                    {t('gateway.endpointAndRegion')}
                   </div>
                 </div>
                 <div className="p-5 space-y-5">
@@ -501,10 +504,10 @@ function GatewayObservability({
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5">
                       <div className="w-0.5 h-3 bg-muted-foreground/50 rounded-full"></div>
-                      端点
+                      {t('gateway.endpoint')}
                     </div>
                     {requestMetrics.topEndpoints.length === 0 ? (
-                      <div className="text-center py-4 text-muted-foreground text-xs">暂无统计</div>
+                      <div className="text-center py-4 text-muted-foreground text-xs">{t('gateway.noStatistics')}</div>
                     ) : (
                       <div className="space-y-3">
                         {requestMetrics.topEndpoints.map((item: any, idx: number) => (
@@ -520,7 +523,7 @@ function GatewayObservability({
                       Region
                     </div>
                     {requestMetrics.topRegions.length === 0 ? (
-                      <div className="text-center py-4 text-muted-foreground text-xs">暂无统计</div>
+                      <div className="text-center py-4 text-muted-foreground text-xs">{t('gateway.noStatistics')}</div>
                     ) : (
                       <div className="space-y-3">
                         {requestMetrics.topRegions.map((item: any, idx: number) => (
@@ -598,7 +601,7 @@ const RequestLogTableRow = React.memo(({
       </div>
       <div className="flex-shrink-0 w-[160px] p-3">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium">{item.model || '未记录'}</span>
+          <span className="text-xs font-medium">{item.model || t('gateway.notRecorded')}</span>
           <span className="text-xs text-muted-foreground">{item.region || '-'}</span>
         </div>
       </div>
@@ -608,7 +611,7 @@ const RequestLogTableRow = React.memo(({
             <span className="text-xs font-mono">{item.inputTokens.toLocaleString()} → {item.outputTokens.toLocaleString()}</span>
             {item.hasCache && (
               <span className="text-xs text-green-600">
-                ⚡ {item.cacheReadTokens > 0 ? `读${item.cacheReadTokens.toLocaleString()}` : ''}{item.cacheReadTokens > 0 && item.cacheCreationTokens > 0 ? ' ' : ''}{item.cacheCreationTokens > 0 ? `写${item.cacheCreationTokens.toLocaleString()}` : ''}
+                ⚡ {item.cacheReadTokens > 0 ? `${t('gateway.read')}${item.cacheReadTokens.toLocaleString()}` : ''}{item.cacheReadTokens > 0 && item.cacheCreationTokens > 0 ? ' ' : ''}{item.cacheCreationTokens > 0 ? `${t('gateway.write')}${item.cacheCreationTokens.toLocaleString()}` : ''}
               </span>
             )}
           </div>
@@ -619,7 +622,7 @@ const RequestLogTableRow = React.memo(({
       <div className="flex-shrink-0 w-[180px] p-3">
         <span className="text-xs">
           {(() => {
-            const source = item.upstreamSource || '未解析'
+            const source = item.upstreamSource || t('gateway.unresolved')
             const parts = source.split(':')
             return parts.length > 1 ? parts[parts.length - 1] : source
           })()}
@@ -643,7 +646,7 @@ const RequestLogTableRow = React.memo(({
         <div className="px-3 pb-3 border-t bg-muted/10">
           {item.error && (
             <div className="mt-2">
-              <div className="text-xs text-red-600 font-semibold mb-1">错误信息</div>
+              <div className="text-xs text-red-600 font-semibold mb-1">{t('gateway.errorInfo')}</div>
               <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words">
                 {item.error}
               </pre>
@@ -653,7 +656,7 @@ const RequestLogTableRow = React.memo(({
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 mt-2">
               {item.requestBody && (
                 <div>
-                  <div className="text-xs font-semibold mb-1">请求体</div>
+                  <div className="text-xs font-semibold mb-1">{t('gateway.requestBody')}</div>
                   <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                     {item.requestBody}
                   </pre>
@@ -661,7 +664,7 @@ const RequestLogTableRow = React.memo(({
               )}
               {item.responseBody && (
                 <div>
-                  <div className="text-xs font-semibold mb-1">响应体</div>
+                  <div className="text-xs font-semibold mb-1">{t('gateway.responseBody')}</div>
                   <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                     {item.responseBody}
                   </pre>
@@ -809,30 +812,30 @@ function VirtualizedRequestLogTable({ filteredRequestLogs }: { filteredRequestLo
                 className="flex-shrink-0 w-[140px] p-3 font-semibold cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => handleSort('statusCode')}
               >
-                状态 {sortConfig.key === 'statusCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                {t('gateway.status')} {sortConfig.key === 'statusCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
               </div>
-              <div className="flex-shrink-0 w-[120px] p-3 font-semibold">端点</div>
+              <div className="flex-shrink-0 w-[120px] p-3 font-semibold">{t('gateway.endpoint')}</div>
               <div
                 className="flex-shrink-0 w-[160px] p-3 font-semibold cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => handleSort('model')}
               >
-                模型 {sortConfig.key === 'model' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                {t('gateway.model')} {sortConfig.key === 'model' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
               </div>
               <div className="flex-shrink-0 w-[160px] p-3 font-semibold">Tokens</div>
-              <div className="flex-shrink-0 w-[180px] p-3 font-semibold">账号</div>
+              <div className="flex-shrink-0 w-[180px] p-3 font-semibold">{t('gateway.account')}</div>
               <div
                 className="flex-shrink-0 w-[100px] p-3 font-semibold cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => handleSort('durationMs')}
               >
-                耗时 {sortConfig.key === 'durationMs' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                {t('gateway.duration')} {sortConfig.key === 'durationMs' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
               </div>
               <div
                 className="flex-shrink-0 w-[140px] p-3 font-semibold cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => handleSort('occurredAt')}
               >
-                时间 {sortConfig.key === 'occurredAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                {t('gateway.time')} {sortConfig.key === 'occurredAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
               </div>
-              <div className="flex-1 min-w-[120px] p-3 font-semibold">客户端</div>
+              <div className="flex-1 min-w-[120px] p-3 font-semibold">{t('gateway.client')}</div>
             </div>
           </div>
 
@@ -868,7 +871,7 @@ function VirtualizedRequestLogTable({ filteredRequestLogs }: { filteredRequestLo
         <div className="border-t bg-muted/20 p-3">
           <details>
             <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
-              查看详细日志（错误信息、请求/响应体）
+              {t('gateway.viewDetailedLogs')}
             </summary>
             <div className="mt-3 space-y-3">
               {filteredRequestLogs.map((item, idx) => {
@@ -880,7 +883,7 @@ function VirtualizedRequestLogTable({ filteredRequestLogs }: { filteredRequestLo
                     </div>
                     {item.error && (
                       <div className="mb-2">
-                        <div className="text-xs text-red-600 font-semibold mb-1">错误信息</div>
+                        <div className="text-xs text-red-600 font-semibold mb-1">{t('gateway.errorInfo')}</div>
                         <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words">
                           {item.error}
                         </pre>
@@ -890,7 +893,7 @@ function VirtualizedRequestLogTable({ filteredRequestLogs }: { filteredRequestLo
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
                         {item.requestBody && (
                           <div>
-                            <div className="text-xs font-semibold mb-1">请求体</div>
+                            <div className="text-xs font-semibold mb-1">{t('gateway.requestBody')}</div>
                             <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                               {item.requestBody}
                             </pre>
@@ -898,7 +901,7 @@ function VirtualizedRequestLogTable({ filteredRequestLogs }: { filteredRequestLo
                         )}
                         {item.responseBody && (
                           <div>
-                            <div className="text-xs font-semibold mb-1">响应体</div>
+                            <div className="text-xs font-semibold mb-1">{t('gateway.responseBody')}</div>
                             <pre className="text-xs bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                               {item.responseBody}
                             </pre>

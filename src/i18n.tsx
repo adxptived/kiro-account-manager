@@ -1,26 +1,38 @@
 import { useEffect, useState } from 'react'
 import i18n from 'i18next'
 import { initReactI18next, I18nextProvider } from 'react-i18next'
+import { invoke } from '@tauri-apps/api/core'
 
 // 从 JSON 文件导入翻译
 import zhCN from '../locales/zh-CN.json'
+import en from '../locales/en.json'
+import ru from '../locales/ru.json'
 
-// 初始化 i18n（仅支持中文）
+// 获取保存的语言或使用默认语言
+const savedLanguage = localStorage.getItem('language') || 'zh-CN'
+
+// 初始化 i18n（支持中文、英文、俄文）
 i18n
   .use(initReactI18next)
   .init({
-    lng: 'zh-CN',
+    lng: savedLanguage,
     fallbackLng: 'zh-CN',
-    supportedLngs: ['zh-CN'],
-    
+    supportedLngs: ['zh-CN', 'en', 'ru'],
+
     resources: {
-      'zh-CN': { translation: zhCN }},
-    
+      'zh-CN': { translation: zhCN },
+      'en': { translation: en },
+      'ru': { translation: ru }},
+
     interpolation: {
       escapeValue: false},
-    
+
     react: {
       useSuspense: false}})
+
+i18n.on('languageChanged', (lng) => {
+  invoke('set_tray_locale', { locale: lng }).catch(() => {})
+})
 
 // I18nProvider 组件
 function I18nProvider({ children }) {

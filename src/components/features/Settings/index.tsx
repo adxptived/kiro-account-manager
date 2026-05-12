@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { emit } from '@tauri-apps/api/event'
 import { Palette, Settings as SettingsIcon, Network, LayoutDashboard, Cpu, Bot, Bell } from 'lucide-react'
+import i18n from '../../../i18n'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs'
 import { useApp } from '../../../hooks/useApp'
 import { useDialog } from '../../../contexts/DialogContext'
@@ -73,6 +74,9 @@ function Settings() {
 
     // 关闭窗口行为
     const [closeToTray, setCloseToTray] = useState(true)
+
+    // Язык интерфейса
+    const [currentLanguage, setCurrentLanguage] = useState(i18n.language)
 
     // Kiro IDE 状态
     const [loading, setLoading] = useState(false)
@@ -256,6 +260,13 @@ function Settings() {
     const handleCloseToTrayChange = async (checked: boolean) => {
         setCloseToTray(checked)
         await saveAppSettings({ closeToTray: checked })
+    }
+
+    const handleLanguageChange = async (language: string) => {
+        setCurrentLanguage(language)
+        await i18n.changeLanguage(language)
+        localStorage.setItem('language', language)
+        await saveAppSettings({ locale: language })
     }
 
     const handleBrowseKiroPath = async () => {
@@ -522,6 +533,8 @@ function Settings() {
                             handleAutoSwitchThresholdChange={handleAutoSwitchThresholdChange}
                             handleAutoSwitchIntervalChange={handleAutoSwitchIntervalChange}
                             handleCloseToTrayChange={handleCloseToTrayChange}
+                            currentLanguage={currentLanguage}
+                            handleLanguageChange={handleLanguageChange}
                             appDataDir={appDataDir}
                             handleOpenAppDataDir={handleOpenAppDataDir}
                             t={t}

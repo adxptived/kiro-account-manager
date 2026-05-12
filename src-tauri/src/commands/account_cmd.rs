@@ -601,7 +601,7 @@ pub async fn add_account_by_social(
         existing.status = calc_status(usage_result.is_banned, usage_result.is_auth_error);
         existing.clone() // ✅ 必须 clone，因为要返回给前端
     } else {
-        let mut account = Account::new(final_email.clone(), format!("Kiro {idp} 账号"));
+        let mut account = Account::new(final_email.clone(), format!("kiro:{idp}:account"));
         account.access_token = Some(final_access_token.clone()); // ✅ 后面还要用，必须 clone
         account.refresh_token = Some(final_refresh_token.clone()); // ✅ 后面还要用，必须 clone
         account.profile_arn = Some(final_profile_arn.clone()); // ✅ 保存 profile_arn
@@ -1044,7 +1044,7 @@ async fn add_account_by_idc_internal(
         } else {
             // 创建新的 Enterprise 账号
             let mut account =
-                Account::new_enterprise(user_id.clone(), "Kiro Enterprise 账号".to_string());
+                Account::new_enterprise(user_id.clone(), "kiro:Enterprise:account".to_string());
             account.access_token = Some(final_access_token);
             account.refresh_token = Some(final_refresh_token);
             account.email = new_email; // 可能是 None
@@ -1123,9 +1123,9 @@ async fn add_account_by_idc_internal(
             let display_id = new_email
                 .clone()
                 .or_else(|| user_id.clone())
-                .unwrap_or_else(|| "BuilderId 账号".to_string());
-            
-            let mut account = Account::new(display_id.clone(), "Kiro BuilderId 账号".to_string());
+                .unwrap_or_else(|| "BuilderId".to_string());
+
+            let mut account = Account::new(display_id.clone(), "kiro:BuilderId:account".to_string());
             account.access_token = Some(final_access_token);
             account.refresh_token = Some(final_refresh_token);
             account.provider = Some(params.provider_id.clone());

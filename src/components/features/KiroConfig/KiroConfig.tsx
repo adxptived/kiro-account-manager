@@ -14,7 +14,7 @@ import { handleUiError } from '../../../utils/errorLogger'
 import { getThemeAccent } from './themeAccent'
 import React from 'react'
 
-// 定义配置页面使用的色彩系统
+// 定义Config页面使用的色彩系统
 const colors = {
   inputFocus: 'focus:ring-primary/20 focus:border-primary',
   badgeActive: 'bg-primary/20 text-primary border border-primary/30',
@@ -65,7 +65,7 @@ function KiroConfig() {
         setProjectDir(selected as string)
       }
     } catch (e) {
-      handleUiError('选择项目目录失败', e, { userMessage: '选择项目目录失败' })
+      handleUiError(t('kiroConfig.selectProjectDirFailed'), e, { userMessage: t('kiroConfig.selectProjectDirFailed') })
     }
   }
 

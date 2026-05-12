@@ -1,10 +1,10 @@
 import { Account, AccountUsageData } from '../types/account';
 
-const ACTIVE_STATUSES = new Set(['active', '正常', '有效'])
-const CAPPED_STATUSES = new Set(['capped', '封顶'])
-const BANNED_STATUSES = new Set(['banned', '封禁', '已封禁'])
-const INVALID_STATUSES = new Set(['invalid', '失效', '已失效', 'Token已失效', 'token已失效'])
-const EXPIRED_STATUSES = new Set(['expired', '过期', '已过期'])
+const ACTIVE_STATUSES = new Set(['active', 'Active', '有效'])
+const CAPPED_STATUSES = new Set(['capped', 'Capped'])
+const BANNED_STATUSES = new Set(['banned', 'Banned', '已Banned'])
+const INVALID_STATUSES = new Set(['invalid', 'Invalid', '已Invalid', 'Token已Invalid', 'token已Invalid'])
+const EXPIRED_STATUSES = new Set(['expired', 'Expired', '已Expired'])
 
 function resolveStatusInput(statusOrAccount: string | Account | any, usageData?: AccountUsageData) {
   if (statusOrAccount && typeof statusOrAccount === 'object' && !Array.isArray(statusOrAccount)) {
@@ -102,17 +102,17 @@ export function getAccountStatusMeta(statusOrAccount: string | Account | any, t?
 
   switch (normalized) {
     case 'active':
-      return { key: 'active', label: t?.('accounts.active') ?? '正常', tone: 'success' }
+      return { key: 'active', label: t?.('accounts.active') ?? 'Active', tone: 'success' }
     case 'capped':
-      return { key: 'capped', label: '封顶', tone: 'warning' }
+      return { key: 'capped', label: 'Capped', tone: 'warning' }
     case 'banned':
-      return { key: 'banned', label: t?.('accounts.banned') ?? '封禁', tone: 'danger' }
+      return { key: 'banned', label: t?.('accounts.banned') ?? 'Banned', tone: 'danger' }
     case 'invalid':
-      return { key: 'invalid', label: t?.('accounts.invalid') ?? '失效', tone: 'warning' }
+      return { key: 'invalid', label: t?.('accounts.invalid') ?? 'Invalid', tone: 'warning' }
     case 'expired':
-      return { key: 'expired', label: t?.('accounts.expired') ?? '过期', tone: 'warning' }
+      return { key: 'expired', label: t?.('accounts.expired') ?? 'Expired', tone: 'warning' }
     default:
       const { status } = resolveStatusInput(statusOrAccount, usageData)
-      return { key: normalized, label: status || (t?.('common.unknown') ?? '未知'), tone: 'warning' }
+      return { key: normalized, label: status || (t?.('common.unknown') ?? 'Unknown'), tone: 'warning' }
   }
 }

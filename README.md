@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange" alt="License">
   <img src="https://img.shields.io/badge/QQ群1-1020204332-12B7F5?logo=tencentqq" alt="QQ群1">
   <img src="https://img.shields.io/badge/QQ群2-1080919449-12B7F5?logo=tencentqq" alt="QQ群2">
-  <img src="https://img.shields.io/badge/语言-简体中文-red" alt="语言">
+  <img src="https://img.shields.io/badge/语言-简体中文%20%7C%20English%20%7C%20Русский-brightgreen" alt="语言">
 </p>
 
 <p align="center">
@@ -19,12 +19,14 @@
 </p>
 
 <p align="center">
-  🌐 <b><a href="https://kiro-website-six.vercel.app">官方网站</a></b> | 
-  📥 <b><a href="#-下载">立即下载</a></b> | 
-  💬 <b><a href="https://qm.qq.com/q/xi0AglEqGs">加入 QQ 2群</a></b>
+  🌐 <b><a href="https://kiro-website-six.vercel.app">官方网站</a></b> |
+  📥 <b><a href="#-下载">立即下载</a></b> |
+  💬 <b><a href="https://qm.qq.com/q/xi0AglEqGs">加入 QQ 2群</a></b> |
+  📚 <b><a href="README_EN.md">English</a></b> |
+  📚 <b><a href="README_RU.md">Русский</a></b>
 </p>
 
-> **📢 语言支持**：本项目**仅支持简体中文界面**。
+> **📢 语言支持**：本项目支持**简体中文、English、Русский**三种语言界面。
 
 ---
 

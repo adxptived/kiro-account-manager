@@ -2,7 +2,7 @@ import { showError } from './toast'
 
 /**
  * 统一错误日志与用户提示
- * @param {string} context 业务上下文，如“加载 MCP 配置失败”
+ * @param {string} context 业务上下文，如“加载 MCP Config失败”
  * @param {unknown} error 原始错误对象
  * @param {{ userMessage?: string }} options 可选用户提示
  */

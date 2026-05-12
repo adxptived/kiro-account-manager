@@ -40,7 +40,7 @@ export default function AuthCallback() {
     // 如果窗口未关闭，显示提示
     setTimeout(() => {
       if (!document.hidden) {
-        setMessage('如果窗口未自动关闭，请手动关闭此页面并返回应用。')
+        setMessage('If the window does not close automatically, close this page manually and return to the app.')
       }
     }, 500)
   }

@@ -31,12 +31,12 @@ function SearchableTagSelect({
   tags = [],
   value,
   onChange,
-  placeholder = '搜索标签...',
+  placeholder = 'Search tags...',
   showAllOption = false,
   showNoneOption = false,
-  allLabel = '全部',
-  noneLabel = '无标签',
-  hasLabel = '有标签',
+  allLabel = 'All',
+  noneLabel = 'No tags',
+  hasLabel = 'Has tags',
   className = ''}: SearchableTagSelectProps) {
   const { theme } = useApp()
   const accent = useMemo(() => getThemeAccent(theme), [theme])
@@ -105,7 +105,7 @@ function SearchableTagSelect({
             type="button" 
             onClick={(e) => { e.stopPropagation(); onChange(null); setSearch('') }} 
             className={`p-1.5 mr-1 rounded-lg hover:bg-muted/50 hover:bg-red-500/10 transition-all hover:scale-110 active:scale-95`}
-            title="清空"
+            title={t('common.clear')}
           >
             <X size={14} className="text-red-500" strokeWidth={2.5} />
           </button>
@@ -181,7 +181,7 @@ function SearchableTagSelect({
               ))
             ) : search ? (
               <div className={`px-4 py-6 text-center text-sm text-muted-foreground`}>
-                未找到匹配的标签
+                No matching tags found
               </div>
             ) : null}
           </div>

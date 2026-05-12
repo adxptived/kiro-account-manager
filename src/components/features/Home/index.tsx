@@ -31,24 +31,24 @@ function Home({ onNavigate }: HomeProps) {
 
   const { showError } = useDialog()
   const { maskEmail } = usePrivacy()
-  const { 
-    accounts: tokens, 
-    localToken, 
-    loading, 
+  const {
+    accounts: tokens,
+    localToken,
+    loading,
     refreshing,
-    stats, 
+    stats,
     currentAccount,
     currentQuotaInfo,
     refresh,
-    refreshAccount 
+    refreshAccount
   } = useAccount()
-  
+
   const [refreshingAccount, setRefreshingAccount] = useState(false)
   const [mcpToolCount, setMcpToolCount] = useState(0)
 
   const handleRefresh = useCallback(() => refresh(), [refresh])
 
-  // 加载 MCP 工具数量
+  // 加载 MCP tools数量
   useEffect(() => {
     const loadMcpToolCount = async () => {
       try {
@@ -80,12 +80,12 @@ function Home({ onNavigate }: HomeProps) {
     { icon: Shield, iconBg: "success-badge", iconColor: accent.text, value: `${stats.active}/${stats.unavailable}`, label: t('home.activeVsUnavailable'), delay: 'delay-200' },
     { icon: Zap, iconBg: "bg-purple-500/10 text-purple-500", iconColor: accent.text, value: stats.proPlus + stats.pro, label: t('home.proAccounts'), delay: 'delay-300' },
     { icon: TrendingUp, iconBg: "warning-badge", iconColor: 'text-orange-500', value: `${stats.usagePercent}%`, label: t('home.usagePercent'), delay: 'delay-400' },
-    { 
-      icon: Server, 
-      iconBg: "bg-cyan-500/10 text-cyan-500", 
+    {
+      icon: Server,
+      iconBg: "bg-cyan-500/10 text-cyan-500",
       iconColor: accent.text,
-      value: mcpToolCount, 
-      label: 'MCP 工具', 
+      value: mcpToolCount,
+      label: t('home.mcpTools'),
       delay: 'delay-500',
       onClick: () => onNavigate?.('kiroConfig'),
       warning: mcpToolCount > 50
@@ -101,7 +101,7 @@ function Home({ onNavigate }: HomeProps) {
       {/* 背景装饰光晕 */}
       <div className="bg-glow bg-glow-1" />
       <div className="bg-glow bg-glow-2" />
-      
+
       <div className="w-full p-8 relative">
         {/* Header */}
         <div className="mb-8 animate-bounce-in">
@@ -123,7 +123,7 @@ function Home({ onNavigate }: HomeProps) {
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           {/* 当前账号 */}
-          <CurrentAccountCard 
+          <CurrentAccountCard
             localToken={localToken}
             refreshing={refreshing}
             handleRefresh={handleRefresh}
@@ -132,7 +132,7 @@ function Home({ onNavigate }: HomeProps) {
           />
 
           {/* 配额总览 */}
-          <QuotaOverviewCard 
+          <QuotaOverviewCard
             stats={stats}
             colors={colors}
             t={t}
@@ -141,7 +141,7 @@ function Home({ onNavigate }: HomeProps) {
 
         {/* 当前账号配额详情 */}
         {localToken && currentAccount && (
-          <AccountQuotaDetail 
+          <AccountQuotaDetail
             currentAccount={currentAccount}
             currentQuotaInfo={currentQuotaInfo}
             refreshingAccount={refreshingAccount}
@@ -155,7 +155,7 @@ function Home({ onNavigate }: HomeProps) {
 
         {/* 使用率分布统计 */}
         {tokens.length > 0 && (
-          <UsageDistribution 
+          <UsageDistribution
             tokens={tokens}
             colors={colors}
             t={t}

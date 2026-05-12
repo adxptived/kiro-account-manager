@@ -1,5 +1,5 @@
 export const AI_MODELS = [
-  { value: 'auto', label: 'Auto (智能选择) - 1.0x', recommended: true },
+  { value: 'auto', label: 'Auto (smart selection) - 1.0x', recommended: true },
   { value: 'claude-opus-4.7', label: 'Claude Opus 4.7 (1M) - 2.2x', recommended: false },
   { value: 'claude-opus-4.6', label: 'Claude Opus 4.6 (1M) - 2.2x', recommended: false },
   { value: 'claude-opus-4.5', label: 'Claude Opus 4.5 (200K) - 2.2x', recommended: false },

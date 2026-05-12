@@ -8,7 +8,7 @@ import { handleUiError } from '../../../utils/errorLogger'
 import { getThemeAccent, getSolidAccentButton, getGradientAccentButton, getThemeSurfaceStyles } from './themeAccent'
 import React from 'react'
 
-// 格式化文件大小
+// Format文件大小
 const formatSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`
 
 function PowersPanel({ onCountChange }: any) {
@@ -50,7 +50,7 @@ function PowersPanel({ onCountChange }: any) {
       setRegistries(regs)
       onCountChange?.(data?.length || 0)
     } catch (e) {
-      handleUiError('加载 Powers 失败', e, { userMessage: t('powers.loadFailed') || '加载 Powers 失败' })
+      handleUiError('Failed to load Powers', e, { userMessage: t('powers.loadFailed') || 'Failed to load Powers' })
     } finally {
       setLoading(false)
     }
@@ -62,7 +62,7 @@ function PowersPanel({ onCountChange }: any) {
       const data = await invoke<any[]>('get_recommended_powers')
       setRecommended(data)
     } catch (e) {
-      handleUiError('加载推荐 Powers 失败', e, { userMessage: t('powers.loadRecommendedFailed') || '加载推荐 Powers 失败' })
+      handleUiError('Failed to load recommended Powers', e, { userMessage: t('powers.loadRecommendedFailed') || 'Failed to load recommended Powers' })
     } finally {
       setRecLoading(false)
     }
@@ -82,7 +82,7 @@ function PowersPanel({ onCountChange }: any) {
       // 更新推荐列表中的安装状态
       setRecommended(prev => prev.map(r => r.name === power.name ? { ...r, installed: false } : r))
     } catch (e) {
-      handleUiError('卸载 Power 失败', e, { userMessage: t('powers.uninstallFailed') || '卸载失败' })
+      handleUiError(t('powers.uninstallFailedInternal'), e, { userMessage: t('powers.uninstallFailed') || t('powers.uninstallFailedInternal') })
     }
   }
 
@@ -109,7 +109,7 @@ function PowersPanel({ onCountChange }: any) {
       onCountChange?.(data?.length || 0)
       showSuccess(t('powers.installSuccess'), rec.displayName || rec.name)
     } catch (e) {
-      handleUiError('安装 Power 失败', e, { userMessage: t('powers.installFailed') || '安装失败' })
+      handleUiError(t('powers.installFailedInternal'), e, { userMessage: t('powers.installFailed') || t('powers.installFailedInternal') })
     } finally {
       setInstalling(null)
     }

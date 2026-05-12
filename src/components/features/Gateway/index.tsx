@@ -1,4 +1,5 @@
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Activity, Play, RotateCcw, Square, Plug, Activity as ActivityIcon, Settings } from 'lucide-react'
 import { Alert as AlertPrimitive, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -68,7 +69,8 @@ function ThemedAlert({ title, children, ...props }: any) {
 }
 
 function GatewayPage() {
-  const { t, theme } = useApp()
+  const { t } = useTranslation()
+  const { theme } = useApp()
   const accent = useMemo(() => getThemeAccent(theme), [theme])
 
   // 定义反代页面使用的色彩系统
@@ -202,30 +204,31 @@ function GatewayPage() {
 
   const consoleHighlights = useMemo(() => ([
     {
-      label: '当前入口',
+      label: t('gateway.currentEndpoint'),
       value: effectiveBaseUrl,
-      detail: `${effectiveConfig.localOnly ? '仅本机访问' : '允许远程访问'} · ${status.running ? '运行中' : '待启动'}`},
+      detail: `${effectiveConfig.localOnly ? t('gateway.localOnly') : t('gateway.allowRemote')} · ${status.running ? t('gateway.running') : t('gateway.pendingStart')}`},
     {
-      label: '客户端 Key',
+      label: t('gateway.clientKey'),
       value: effectiveSecuritySummary.apiKeyState,
       detail: integrationSummary.authLabel},
     {
-      label: '路由模式',
+      label: t('gateway.routingMode'),
       value: effectiveRoutingSummary.modeLabel,
       detail: `${effectiveRoutingSummary.selectionLabel}：${effectiveRoutingSummary.selectionValue}`},
     {
-      label: '最近风险',
-      value: latestErrorEntry ? '需要排查' : '状态平稳',
-      detail: latestErrorEntry?.message || `最后同步 ${lastStatusSyncAt}`},
+      label: t('gateway.recentRisk'),
+      value: latestErrorEntry ? t('gateway.needsInvestigation') : t('gateway.stable'),
+      detail: latestErrorEntry?.message || `${t('gateway.lastSync')} ${lastStatusSyncAt}`},
     {
-      label: '观测样本',
-      value: `${requestLogSummary.total} 条请求`,
-      detail: `成功率 ${requestMetrics.successRateLabel} · 错误率 ${requestMetrics.errorRateLabel}`},
+      label: t('gateway.observationSamples'),
+      value: `${requestLogSummary.total} ${t('gateway.requestCount')}`,
+      detail: `${t('gateway.successRate')} ${requestMetrics.successRateLabel} · ${t('gateway.errorRate')} ${requestMetrics.errorRateLabel}`},
     {
-      label: '运行差异',
-      value: hasRuntimeChanges ? '需重启生效' : '运行态已对齐',
-      detail: hasUnsavedChanges ? '页面有未保存配置' : '配置已保存'},
+      label: t('gateway.runtimeDifference'),
+      value: hasRuntimeChanges ? t('gateway.needsRestart') : t('gateway.runtimeAligned'),
+      detail: hasUnsavedChanges ? t('gateway.unsavedChanges') : t('gateway.configSaved')},
   ]), [
+    t,
     effectiveBaseUrl,
     effectiveConfig.localOnly,
     status.running,
@@ -246,58 +249,58 @@ function GatewayPage() {
   const operationsChecklist = useMemo(() => {
     const checks = [
       {
-        label: '配置健康',
-        status: hasFieldErrors ? '待修正' : '正常',
+        label: t('gateway.configHealth'),
+        status: hasFieldErrors ? t('gateway.needsFix') : t('gateway.normal'),
         tone: hasFieldErrors ? 'red' : 'green',
-        detail: hasFieldErrors ? '存在表单错误，保存和启动会被拦截。' : '当前表单字段满足反代启动要求。'},
+        detail: hasFieldErrors ? t('gateway.formErrorsBlockSave') : t('gateway.formFieldsValid')},
       {
-        label: '运行状态',
-        status: status.running ? '运行中' : '未启动',
+        label: t('gateway.runtimeStatus'),
+        status: status.running ? t('gateway.running') : t('gateway.notStarted'),
         tone: status.running ? 'green' : 'gray',
         detail: status.running
-          ? `当前监听 ${statusSummary.listen}，请求计数 ${statusSummary.requests}。`
-          : '当前尚未拉起反代，可直接使用现有配置启动。'},
+          ? `${t('gateway.currentListen')} ${statusSummary.listen}，${t('gateway.requestCount2')} ${statusSummary.requests}。`
+          : t('gateway.proxyNotStarted')},
       {
-        label: '配置同步',
-        status: hasUnsavedChanges ? '未保存' : '已保存',
+        label: t('gateway.configSync'),
+        status: hasUnsavedChanges ? t('gateway.unsaved') : t('gateway.saved'),
         tone: hasUnsavedChanges ? 'yellow' : 'teal',
         detail: hasUnsavedChanges
-          ? '页面配置已经变化，如需长期保留请先保存配置。'
-          : '页面配置已与配置文件保持一致。'},
+          ? t('gateway.pageConfigChanged')
+          : t('gateway.pageConfigSynced')},
       {
-        label: '运行差异',
-        status: hasRuntimeChanges ? '待重启' : '已对齐',
+        label: t('gateway.runtimeDifference'),
+        status: hasRuntimeChanges ? t('gateway.needsRestartStatus') : t('gateway.aligned'),
         tone: hasRuntimeChanges ? 'orange' : 'teal',
         detail: hasRuntimeChanges
-          ? '反代仍在使用旧运行参数，需要重启后才会切换到新配置。'
-          : '当前运行参数与页面快照一致。'},
+          ? t('gateway.proxyUsingOldParams')
+          : t('gateway.runtimeParamsMatch')},
     ]
 
     if (latestErrorEntry) {
       checks.push({
-        label: '最近风险',
-        status: `${latestErrorEntry.count} 次`,
+        label: t('gateway.recentRisk'),
+        status: `${latestErrorEntry.count} ${t('gateway.times')}`,
         tone: 'orange',
         detail: latestErrorEntry.message})
     }
 
     return checks
-  }, [hasFieldErrors, status.running, statusSummary.listen, statusSummary.requests, hasUnsavedChanges, hasRuntimeChanges, latestErrorEntry])
+  }, [t, hasFieldErrors, status.running, statusSummary.listen, statusSummary.requests, hasUnsavedChanges, hasRuntimeChanges, latestErrorEntry])
 
   const integrationGuidance = useMemo(() => ([
     {
-      label: 'Anthropic Messages API',
+      label: t('gateway.anthropicMessagesApi'),
       value: '/v1/messages',
-      detail: '使用 ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY 直连本地反代，支持原生 Messages API 格式。'},
+      detail: t('gateway.anthropicMessagesApiDesc')},
     {
-      label: 'OpenAI API',
+      label: t('gateway.openaiApi'),
       value: '/v1/chat/completions, /v1/responses',
-      detail: '使用 OPENAI_BASE_URL + OPENAI_API_KEY，支持 Chat Completions 和 Responses 两种格式，兼容标准 OpenAI 客户端库。'},
+      detail: t('gateway.openaiApiDesc')},
     {
-      label: '排障入口',
-      value: '观测页',
-      detail: '日志目录、错误历史、请求明细都统一收口在观测页，不需要再翻系统日志。'},
-  ]), [])
+      label: t('gateway.troubleshootingEntry'),
+      value: t('gateway.observabilityPage'),
+      detail: t('gateway.observabilityPageDesc')},
+  ]), [t])
 
   const pollingFallbackConfig = useMemo(
     () => ({
@@ -467,7 +470,7 @@ function GatewayPage() {
     if (!hasFieldErrors) {
       return false
     }
-    pushError('请先修正表单错误后再继续')
+    pushError(t('gateway.fixFormErrors'))
     return true
   }
 
@@ -539,11 +542,11 @@ function GatewayPage() {
     // 延迟执行，确保 setField 先更新状态
     setTimeout(async () => {
       try {
-        // 先保存配置
+        // 先保存Config
         await saveGatewayConfig({ ...config, enabled: checked })
         setSavedConfigSnapshot(buildGatewayConfigSnapshot({ ...config, enabled: checked }))
         
-        // 如果勾选自动启动且配置有效，立即启动反代
+        // 如果勾选自动启动且Config有效，立即启动反代
         if (checked && !hasFieldErrors) {
           setSaving(true)
           const st = await startGateway({ ...config, enabled: checked })
@@ -589,14 +592,14 @@ function GatewayPage() {
                   <Stack gap="sm">
                     <Group justify="space-between" align="flex-start">
                       <Stack gap={6}>
-                        <Text fw={700} className={"text-foreground"}>Kiro API 反代</Text>
+                        <Text fw={700} className={"text-foreground"}>{t('gateway.kiroApiReverseProxy')}</Text>
                         <Text size="sm" className={"text-muted-foreground"}>
-                          把入口状态、客户端接入、安全边界和观测线索压到一屏里，优先处理保存/启动/重启这几类主动作。
+                          {t('gateway.gatewayDescription')}
                         </Text>
                       </Stack>
                       <Group gap="xs">
                         <Badge color="indigo">Gateway Console</Badge>
-                        <Badge color={status.running ? 'green' : 'gray'}>{status.running ? '流量入口已在线' : '等待启动'}</Badge>
+                        <Badge color={status.running ? 'green' : 'gray'}>{status.running ? t('gateway.trafficEndpointOnline') : t('gateway.waitingToStart')}</Badge>
                       </Group>
                     </Group>
 
@@ -617,13 +620,13 @@ function GatewayPage() {
             <Group justify="space-between" align="flex-start">
               <Stack gap={4}>
                 <Group gap="xs">
-                  <Badge color={status.running ? 'green' : 'gray'}>{status.running ? '反代运行中' : '反代未启动'}</Badge>
-                  <Badge color={effectiveConfig.localOnly ? 'teal' : 'yellow'}>{effectiveConfig.localOnly ? '仅本机访问' : '允许远程访问'}</Badge>
+                  <Badge color={status.running ? 'green' : 'gray'}>{status.running ? t('gateway.reverseProxyRunning') : t('gateway.reverseProxyNotStarted')}</Badge>
+                  <Badge color={effectiveConfig.localOnly ? 'teal' : 'yellow'}>{effectiveConfig.localOnly ? t('gateway.localOnly') : t('gateway.allowRemote')}</Badge>
                   <Badge variant="light" color={hasUnsavedChanges ? 'yellow' : 'teal'}>
-                    {hasUnsavedChanges ? '存在未保存配置' : '配置已保存'}
+                    {hasUnsavedChanges ? t('gateway.unsavedConfigExists') : t('gateway.configSaved')}
                   </Badge>
                 </Group>
-                <Text fw={700} className={"text-foreground"}>当前入口 {effectiveBaseUrl}</Text>
+                <Text fw={700} className={"text-foreground"}>{t('gateway.currentEndpoint')} {effectiveBaseUrl}</Text>
                 <Text size="sm" className={"text-muted-foreground"}>
                   {effectiveRoutingSummary.modeLabel} · {effectiveRoutingSummary.selectionValue} · {effectiveSecuritySummary.apiKeyState}
                 </Text>
@@ -636,7 +639,7 @@ function GatewayPage() {
                   disabled={!hasUnsavedChanges || hasFieldErrors || saving || loading}
                 >
                   <Activity size={16} className="mr-1" />
-                  保存配置
+                  {t('gateway.saveConfig')}
                 </Button>
                 {status.running ? (
                   <Button
@@ -645,7 +648,7 @@ function GatewayPage() {
                     disabled={hasFieldErrors || saving || loading}
                   >
                     <RotateCcw size={16} className="mr-1" />
-                    重启反代
+                    {t('gateway.restartReverseProxy')}
                   </Button>
                 ) : null}
                 {!status.running ? (
@@ -655,7 +658,7 @@ function GatewayPage() {
                     className="bg-green-500 hover:bg-green-600 text-white"
                   >
                     <Play size={16} className="mr-1" />
-                    启动反代
+                    {t('gateway.startReverseProxy')}
                   </Button>
                 ) : (
                   <Button
@@ -664,7 +667,7 @@ function GatewayPage() {
                     className="bg-red-500 hover:bg-red-600 text-white"
                   >
                     <Square size={16} className="mr-1" />
-                    停止反代
+                    {t('gateway.stopReverseProxy')}
                   </Button>
                 )}
               </Group>
@@ -672,23 +675,23 @@ function GatewayPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="border rounded-xl p-4">
-                <Text size="xs" className={"text-muted-foreground"}>运行快照</Text>
+                <Text size="xs" className={"text-muted-foreground"}>{t('gateway.runtimeSnapshot')}</Text>
                 <Text fw={700} className={"text-foreground"}>{statusSummary.listen}</Text>
                 <Text size="sm" className={"text-muted-foreground"} mt={4}>
                   {statusSummary.routing} · {statusSummary.region}
                 </Text>
               </Card>
               <Card className="border rounded-xl p-4">
-                <Text size="xs" className={"text-muted-foreground"}>接入与鉴权</Text>
+                <Text size="xs" className={"text-muted-foreground"}>{t('gateway.integrationAndAuth')}</Text>
                 <Text fw={700} className={"text-foreground"}>{integrationSummary.endpointLabel}</Text>
                 <Text size="sm" className={"text-muted-foreground"} mt={4}>
                   {integrationSummary.authLabel}
                 </Text>
               </Card>
               <Card className="border rounded-xl p-4">
-                <Text size="xs" className={"text-muted-foreground"}>最新风险</Text>
+                <Text size="xs" className={"text-muted-foreground"}>{t('gateway.latestRisk')}</Text>
                 <Text fw={700} className={"text-foreground"}>
-                  {latestErrorEntry ? '最近有错误请求' : '最近未发现错误'}
+                  {latestErrorEntry ? t('gateway.recentErrorRequests') : t('gateway.noRecentErrors')}
                 </Text>
                 <Text size="sm" className={"text-muted-foreground"} mt={4}>
                   {latestErrorEntry?.lastSeenAt || lastStatusSyncAt}
