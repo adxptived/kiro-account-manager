@@ -116,7 +116,7 @@ pub fn normalize_responses_request(payload: &Value) -> Result<NormalizedRequest,
     }
 
     if messages.is_empty() {
-        return Err("Responses 请求缺少可转换的 input".to_string());
+        return Err("Responses request is missing convertible input".to_string());
     }
 
     Ok(build_normalized_request_from_payload(
@@ -136,7 +136,7 @@ fn normalize_openai_chat_payload(payload: &Value) -> Result<NormalizedRequest, S
 
     let messages = convert_openai_chat_messages(payload.get("messages"));
     if messages.is_empty() {
-        return Err("chat.completions 请求缺少可转换的 messages".to_string());
+        return Err("chat.completions request is missing convertible messages".to_string());
     }
 
     Ok(build_normalized_request_from_payload(
@@ -705,7 +705,7 @@ pub async fn build_kiro_payload(
     }
 
     if other_messages.is_empty() {
-        return Err("没有可发送的消息".to_string());
+        return Err("No messages to send".to_string());
     }
 
     let merged_messages = merge_adjacent_messages(&other_messages);
@@ -1922,8 +1922,8 @@ fn normalize_tool_choice(
             .get("type")
             .and_then(Value::as_str)
             .map(str::trim)
-            .ok_or_else(|| "tool_choice.type 无效".to_string())?,
-        _ => return Err("tool_choice 格式无效".to_string()),
+            .ok_or_else(|| "tool_choice.type is invalid".to_string())?,
+        _ => return Err("tool_choice format is invalid".to_string()),
     };
 
     match choice_type {
@@ -1931,7 +1931,7 @@ fn normalize_tool_choice(
         "none" => Ok(Some(json!({ "type": "none" }))),
         "required" => {
             if tools.as_ref().is_none_or(|items| items.is_empty()) {
-                return Err("tool_choice=required 时必须同时提供 tools".to_string());
+                return Err("tool_choice=required requires tools to be provided".to_string());
             }
             Ok(Some(json!({ "type": "required" })))
         }
@@ -2155,10 +2155,12 @@ mod tests {
                 allowed_domains: None,
                 blocked_domains: None,
                 user_location: None,
+                ..Default::default()
             }]),
             tool_choice: Some(json!({"type":"auto"})),
             thinking: None,
             metadata: None,
+            ..Default::default()
         };
 
         let converted = normalize_anthropic_request(&request);
@@ -2196,10 +2198,12 @@ mod tests {
                 allowed_domains: Some(vec!["blog.rust-lang.org".to_string()]),
                 blocked_domains: Some(vec!["example.com".to_string()]),
                 user_location: Some(json!({ "type": "approximate", "city": "Singapore" })),
+                ..Default::default()
             }]),
             tool_choice: Some(json!({ "type": "auto" })),
             thinking: None,
             metadata: None,
+            ..Default::default()
         };
 
         let converted = normalize_anthropic_request(&request);
@@ -2265,6 +2269,7 @@ mod tests {
             tool_choice: None,
             thinking: None,
             metadata: None,
+            ..Default::default()
         };
 
         let converted = normalize_anthropic_request(&request);
@@ -3183,6 +3188,7 @@ mod tests {
             tool_choice: None,
             thinking: None,
             metadata: None,
+            ..Default::default()
         };
 
         let converted = normalize_anthropic_request(&request);

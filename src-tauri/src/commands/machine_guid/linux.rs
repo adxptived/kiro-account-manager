@@ -16,7 +16,7 @@ fn read_machine_id() -> Result<String, String> {
             return Ok(content.trim().to_string());
         }
     }
-    Err("无法获取 Linux 机器码".to_string())
+    Err("Failed to get Linux machine code".to_string())
 }
 
 fn write_with_pkexec(raw_id: &str) -> Result<(), String> {
@@ -38,7 +38,7 @@ fn write_with_pkexec(raw_id: &str) -> Result<(), String> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("dismissed") || stderr.contains("Not authorized") {
-            return Err("用户取消了授权".to_string());
+            return Err("User cancelled authorization".to_string());
         }
         return Err(format!("写入失败: {}", stderr));
     }
@@ -84,7 +84,7 @@ pub fn reset_machine_guid_inner() -> Result<String, String> {
 
 pub fn set_custom_machine_guid_inner(new_guid: String) -> Result<String, String> {
     if !is_valid_machine_id(&new_guid) {
-        return Err("无效的机器码格式".to_string());
+        return Err("Invalid machine code format".to_string());
     }
     let raw_id = new_guid.replace("-", "").to_lowercase();
     write_with_pkexec(&raw_id)?;

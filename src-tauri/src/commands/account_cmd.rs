@@ -558,7 +558,7 @@ pub async fn add_account_by_social(
 
     // 封禁账号直接报错
     if usage_result.is_banned {
-        return Err("BANNED: 账号已被封禁".to_string());
+        return Err("BANNED: Account banned".to_string());
     }
 
     let (new_email, user_id) = extract_user_info(&usage_result.usage_data);
@@ -981,7 +981,7 @@ async fn add_account_by_idc_internal(
 
     // 封禁账号直接报错
     if usage_result.is_banned {
-        return Err("BANNED: 账号已被封禁".to_string());
+        return Err("BANNED: Account banned".to_string());
     }
 
     let (new_email, user_id) = extract_user_info(&usage_result.usage_data);
@@ -1197,7 +1197,7 @@ pub fn update_account(
         save_store(&store)?;
         Ok(result)
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 
@@ -1217,15 +1217,15 @@ pub async fn delete_account_remote(
         let store = lock_store(&state.store, "store")?;
         store.accounts.iter().find(|a| a.id == id).cloned()
     }
-    .ok_or("账号不存在")?;
+    .ok_or("Account not found")?;
 
     // 检查 provider
     let provider = account.provider.as_deref().unwrap_or("Google");
     if provider == "Enterprise" {
-        return Err("Enterprise 账号不支持远程删除".to_string());
+        return Err("Enterprise accounts do not support remote deletion".to_string());
     }
     if provider == "BuilderId" {
-        return Err("BuilderId 账号不支持远程删除".to_string());
+        return Err("BuilderId accounts do not support remote deletion".to_string());
     }
 
     let access_token = account
@@ -1324,7 +1324,7 @@ pub async fn list_available_models(
         let store = lock_store(&state.store, "store")?;
         store.accounts.iter().find(|item| item.id == id).cloned()
     }
-    .ok_or("账号不存在")?;
+    .ok_or("Account not found")?;
 
     if let Some(cached_response) = read_available_models_cache(
         &account,
@@ -1360,7 +1360,7 @@ pub async fn list_available_models(
                     .accounts
                     .iter_mut()
                     .find(|item| item.id == id)
-                    .ok_or("账号不存在")?;
+                    .ok_or("Account not found")?;
                 apply_refreshed_account_tokens(stored_account, &refresh);
                 save_store(&store)?;
             }

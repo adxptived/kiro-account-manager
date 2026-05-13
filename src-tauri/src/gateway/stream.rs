@@ -9,6 +9,7 @@ pub enum KiroEvent {
     },
     ToolUseInputDelta {
         id: String,
+        name: Option<String>,
         input_delta: String,
     },
     ToolUseStop {
@@ -289,47 +290,8 @@ pub fn parse_kiro_event_full(json_str: &str) -> Option<KiroEvent> {
         });
     }
 
-    if let Some(tool_use_id) = value.get("toolUseId").and_then(|item| item.as_str()) {
-        let name = value
-            .get("name")
-            .and_then(|item| item.as_str())
-            .unwrap_or_default()
-            .to_string();
-
-        if value.get("stop").and_then(|item| item.as_bool()) == Some(true) {
-            return Some(KiroEvent::ToolUseStop {
-                id: tool_use_id.to_string(),
-            });
-        }
-
-        if let Some(input) = value.get("input") {
-            let input_delta = if let Some(text) = input.as_str() {
-                log::debug!("[Tool Use] input 是字符串: {}", text.chars().take(100).collect::<String>());
-                text.to_string()
-            } else if input.is_object() || input.is_array() {
-                let serialized = serde_json::to_string(input).unwrap_or_default();
-                log::debug!("[Tool Use] input 是对象/数组，序列化后: {}", serialized.chars().take(100).collect::<String>());
-                serialized
-            } else {
-                log::warn!("[Tool Use] input 类型未知: {:?}", input);
-                String::new()
-            };
-            if !input_delta.is_empty() {
-                log::debug!("[Tool Use] 发送 ToolUseInputDelta: id={}, delta_len={}", tool_use_id, input_delta.len());
-                return Some(KiroEvent::ToolUseInputDelta {
-                    id: tool_use_id.to_string(),
-                    input_delta,
-                });
-            }
-        }
-
-        if !name.is_empty() {
-            log::debug!("[Tool Use] 发送 ToolUseStart: id={}, name={}", tool_use_id, name);
-            return Some(KiroEvent::ToolUseStart {
-                id: tool_use_id.to_string(),
-                name,
-            });
-        }
+    if let Some(event) = parse_tool_use_event(&value) {
+        return Some(event);
     }
 
     if let Some(tool) = value
@@ -355,6 +317,48 @@ pub fn parse_kiro_event_full(json_str: &str) -> Option<KiroEvent> {
     }
 
     parse_text_content(&value).map(KiroEvent::Text)
+}
+
+fn parse_tool_use_event(value: &serde_json::Value) -> Option<KiroEvent> {
+    let tool = value.get("toolUseEvent").unwrap_or(value);
+    let tool_use_id = tool.get("toolUseId").and_then(|item| item.as_str())?;
+    let name = tool
+        .get("name")
+        .and_then(|item| item.as_str())
+        .unwrap_or_default()
+        .to_string();
+
+    if tool.get("stop").and_then(|item| item.as_bool()) == Some(true) {
+        return Some(KiroEvent::ToolUseStop {
+            id: tool_use_id.to_string(),
+        });
+    }
+
+    if let Some(input) = tool.get("input") {
+        let input_delta = if let Some(text) = input.as_str() {
+            text.to_string()
+        } else if input.is_object() || input.is_array() {
+            serde_json::to_string(input).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        if !input_delta.is_empty() {
+            return Some(KiroEvent::ToolUseInputDelta {
+                id: tool_use_id.to_string(),
+                name: (!name.is_empty()).then_some(name),
+                input_delta,
+            });
+        }
+    }
+
+    if !name.is_empty() {
+        return Some(KiroEvent::ToolUseStart {
+            id: tool_use_id.to_string(),
+            name,
+        });
+    }
+
+    None
 }
 
 pub fn deduplicate_tool_calls(
@@ -429,11 +433,21 @@ pub fn aggregate_kiro_response(raw: &str) -> AggregatedKiroResponse {
                 }
                 KiroEvent::ToolUseStart { id, name } => {
                     log::debug!("[聚合] 工具使用开始: id={}, name={}", id, name);
-                    tool_accumulators.entry(id).or_insert((name, String::new()));
+                    let entry = tool_accumulators
+                        .entry(id)
+                        .or_insert((String::new(), String::new()));
+                    if entry.0.is_empty() {
+                        entry.0 = name;
+                    }
                 }
-                KiroEvent::ToolUseInputDelta { id, input_delta } => {
+                KiroEvent::ToolUseInputDelta { id, name, input_delta } => {
                     log::debug!("[聚合] 工具输入增量: id={}, delta_len={}", id, input_delta.len());
-                    if let Some((_, current_input)) = tool_accumulators.get_mut(&id) {
+                    if let Some((existing_name, current_input)) = tool_accumulators.get_mut(&id) {
+                        if existing_name.is_empty() {
+                            if let Some(name) = name {
+                                *existing_name = name;
+                            }
+                        }
                         // 如果新的 input_delta 看起来是完整的 JSON（以 { 开头），则替换而不是追加
                         // 这是因为 Kiro IDE 的非流式响应中，每个事件都包含完整的 input
                         if input_delta.trim_start().starts_with('{') && current_input.trim_start().starts_with('{') {
@@ -443,7 +457,7 @@ pub fn aggregate_kiro_response(raw: &str) -> AggregatedKiroResponse {
                             current_input.push_str(&input_delta);
                         }
                     } else {
-                        tool_accumulators.insert(id, (String::new(), input_delta));
+                        tool_accumulators.insert(id, (name.unwrap_or_default(), input_delta));
                     }
                 }
                 KiroEvent::ToolUseStop { id } => {
@@ -496,6 +510,13 @@ pub fn aggregate_kiro_response(raw: &str) -> AggregatedKiroResponse {
 
         remaining = &remaining[json_len..];
     }
+
+    for (id, (name, input)) in tool_accumulators.drain() {
+        if !name.is_empty() {
+            aggregated.tool_calls.push((id, name, input));
+        }
+    }
+
     aggregated.tool_calls = deduplicate_tool_calls(aggregated.tool_calls);
 
     // 记录统计信息
@@ -815,6 +836,7 @@ mod tests {
             parse_kiro_event_full(r#"{"toolUseId":"tool_1","input":{"q":"gateway"}}"#),
             Some(KiroEvent::ToolUseInputDelta {
                 id: "tool_1".to_string(),
+                name: None,
                 input_delta: "{\"q\":\"gateway\"}".to_string(),
             })
         );

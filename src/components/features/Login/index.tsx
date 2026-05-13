@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { Loader, ArrowRight } from 'lucide-react'
 import { useApp } from '../../../hooks/useApp'
+import { mapBackendError } from '../../../utils/backendErrors'
 import { Button } from '../../shared/button'
 import React from 'react'
 
@@ -126,11 +127,11 @@ function Login({ onLogin }: LoginProps) {
   }, [])
 
   const getLoginErrorMessage = (e: any) => {
-    const rawMessage = typeof e === 'string' ? e : e?.message || t('login.failed')
+    const rawMessage = typeof e === 'string' ? e : e?.message || ''
     if (rawMessage.toLowerCase().includes('cancel')) {
       return t('login.cancelled')
     }
-    return rawMessage
+    return mapBackendError(rawMessage || e, t) || t('login.failed')
   }
 
   const handleLogin = async (provider: string) => {

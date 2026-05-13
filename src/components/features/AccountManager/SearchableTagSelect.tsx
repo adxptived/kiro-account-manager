@@ -3,6 +3,7 @@ import { X, ChevronDown, Tag } from 'lucide-react'
 import { useApp } from '../../../hooks/useApp'
 import { isPointerInsideContainer } from './utils/pointerInside'
 import { getThemeAccent } from '../KiroConfig/themeAccent'
+import { useTranslation } from 'react-i18next'
 import React from 'react'
 
 interface TagItem {
@@ -39,6 +40,7 @@ function SearchableTagSelect({
   hasLabel = 'Has tags',
   className = ''}: SearchableTagSelectProps) {
   const { theme } = useApp()
+  const { t } = useTranslation()
   const accent = useMemo(() => getThemeAccent(theme), [theme])
   const activeOptionClass = `${accent.bgSoft} ${accent.text} font-medium`
   const [open, setOpen] = useState(false)

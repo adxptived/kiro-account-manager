@@ -102,7 +102,7 @@ pub fn write_file_with_dir(path: &std::path::Path, content: &str) -> std::io::Re
 pub fn load_backup() -> Result<MachineGuidBackup, String> {
     let path = get_backup_path();
     if !path.exists() {
-        return Err("没有找到备份文件".to_string());
+        return Err("No backup file found".to_string());
     }
     let content = std::fs::read_to_string(&path).map_err(|e| format!("读取备份失败: {e}"))?;
     serde_json::from_str(&content).map_err(|e| format!("解析备份失败: {e}"))

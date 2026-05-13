@@ -150,11 +150,11 @@ pub async fn import_from_kiro_cli(
     let cli_accounts = read_kiro_cli_accounts(&expanded_path)?;
 
     if cli_accounts.is_empty() {
-        return Err("数据库中没有账号数据".to_string());
+        return Err("No account data found in database".to_string());
     }
 
     if cli_accounts.len() > 1 {
-        return Err("数据库中有多个账号，请联系开发者".to_string());
+        return Err("Multiple accounts found in database, please contact developer".to_string());
     }
 
     let cli_account = &cli_accounts[0];
@@ -308,6 +308,20 @@ pub fn rollback_cli_switch(
 }
 
 /// 构造切号载荷（从 Account 转换为 CLI 2.0 格式）
+#[tauri::command]
+pub fn build_cli_switch_payload(
+    account_id: String,
+    state: State<'_, AppState>,
+) -> Result<crate::kiro::cli::KiroCliSwitchPayload, String> {
+    let store = lock_account_store(&state.store)?;
+    let account = store
+        .accounts
+        .iter()
+        .find(|a| a.id == account_id)
+        .ok_or_else(|| format!("账号不存在: {account_id}"))?;
+    build_switch_payload(account)
+}
+
 fn build_switch_payload(
     account: &Account,
 ) -> Result<crate::kiro::cli::KiroCliSwitchPayload, String> {

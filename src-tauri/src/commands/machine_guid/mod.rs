@@ -138,18 +138,18 @@ pub async fn restart_as_admin(app: tauri::AppHandle) -> Result<(), String> {
                 app.exit(0);
                 Ok(())
             }
-            Err(_) => Err("请使用 sudo 或 pkexec 手动以 root 权限运行程序".to_string()),
+            Err(_) => Err("Please use sudo or pkexec to run the program with root privileges".to_string()),
         }
     }
 
     #[cfg(target_os = "macos")]
     {
-        // macOS 不需要管理员权限（写入用户目录）
-        Err("macOS 不需要管理员权限".to_string())
+        // macOS does not require administrator privileges（写入用户目录）
+        Err("macOS does not require administrator privileges".to_string())
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
-        Err("不支持的操作系统".to_string())
+        Err("Unsupported operating system".to_string())
     }
 }

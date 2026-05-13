@@ -6,6 +6,7 @@ mod proxy;
 mod stream;
 mod thinking_parser;
 mod token_cache;
+mod token_estimator;
 
 use axum::{
     extract::{ConnectInfo, State},
@@ -218,7 +219,7 @@ fn default_log_level() -> String {
 fn build_bind_addr(host: &str, port: u16) -> Result<SocketAddr, String> {
     let normalized = host.trim();
     if normalized.is_empty() {
-        return Err("监听地址不能为空".to_string());
+        return Err("Listen address cannot be empty".to_string());
     }
 
     if normalized.eq_ignore_ascii_case("localhost") {
@@ -301,15 +302,15 @@ impl GatewayStatus {
 fn ensure_config_valid(config: &GatewayConfig) -> Result<(), String> {
     build_bind_addr(&config.host, config.port)?;
     if config.port == 0 {
-        return Err("端口必须大于 0".to_string());
+        return Err("Port must be greater than 0".to_string());
     }
 
     let region = config.region.trim();
     if region.is_empty() {
-        return Err("region 不能为空".to_string());
+        return Err("region cannot be empty".to_string());
     }
     if !is_supported_kiro_region(region) {
-        return Err(format!("region 不受支持: {region}"));
+        return Err(format!("region is not supported: {region}"));
     }
     match config.account_mode.as_str() {
         "single"
@@ -320,7 +321,7 @@ fn ensure_config_valid(config: &GatewayConfig) -> Result<(), String> {
                 .trim()
                 .is_empty() =>
         {
-            return Err("single 模式必须选择账号".to_string());
+            return Err("single mode must select an account".to_string());
         }
         "group"
             if config
@@ -330,29 +331,29 @@ fn ensure_config_valid(config: &GatewayConfig) -> Result<(), String> {
                 .trim()
                 .is_empty() =>
         {
-            return Err("group 模式必须选择分组".to_string());
+            return Err("group mode must select a group".to_string());
         }
         "single" | "group" | "pool" => {}
         "local" => {
-            return Err("反代不再支持 local 模式，请改用 single/group/pool 账号池模式".to_string());
+            return Err("Proxy no longer supports local mode, please use single/group/pool account pool mode".to_string());
         }
-        _ => return Err("accountMode 必须是 single/group/pool".to_string()),
+        _ => return Err("accountMode must be single/group/pool".to_string()),
     }
     if !matches!(
         config.log_level.as_str(),
         "debug" | "info" | "warn" | "error"
     ) {
-        return Err("logLevel 必须是 debug/info/warn/error".to_string());
+        return Err("logLevel must be debug/info/warn/error".to_string());
     }
     if effective_client_api_keys(config).is_empty() {
-        return Err("必须配置客户端 API Key".to_string());
+        return Err("Client API Key must be configured".to_string());
     }
     if !config.local_only && config.allowed_ips.is_empty() {
-        return Err("允许远程访问时必须至少配置一个白名单来源 IP".to_string());
+        return Err("At least one whitelist source IP must be configured when allowing remote access".to_string());
     }
     for entry in &config.allowed_ips {
         if !is_valid_allowlist_entry(entry) {
-            return Err(format!("白名单条目无效: {entry}"));
+            return Err(format!("Invalid whitelist entry: {entry}"));
         }
     }
     Ok(())
@@ -1083,7 +1084,7 @@ mod tests {
         };
 
         let err = ensure_config_valid(&config).expect_err("unsupported region should fail");
-        assert!(err.contains("region 不受支持"));
+        assert!(err.contains("region is not supported"));
     }
 
     #[test]
@@ -1096,7 +1097,7 @@ mod tests {
 
         let err = ensure_config_valid(&config).expect_err("local mode should fail");
         assert!(
-            err.contains("不再支持 local 模式"),
+            err.contains("no longer supports local mode"),
             "unexpected error: {err}"
         );
     }
@@ -1148,7 +1149,7 @@ mod tests {
 
         let err =
             ensure_config_valid(&config).expect_err("remote access without allowlist should fail");
-        assert!(err.contains("白名单"), "unexpected error: {err}");
+        assert!(err.contains("whitelist"), "unexpected error: {err}");
     }
 
     #[test]
@@ -1198,7 +1199,7 @@ mod tests {
 
         let err = ensure_config_valid(&normalize_config(&config))
             .expect_err("missing client api keys should fail");
-        assert!(err.contains("客户端 API Key"), "unexpected error: {err}");
+        assert!(err.contains("Client API Key"), "unexpected error: {err}");
     }
 
     #[tokio::test]

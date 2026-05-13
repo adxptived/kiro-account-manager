@@ -2699,7 +2699,7 @@ fn normalize_request(format: ResponseFormat, payload: &Value) -> Result<Normaliz
 fn verify_client_auth(headers: &HeaderMap, config: &GatewayConfig) -> Result<(), String> {
     let expected_keys = effective_client_api_keys(config);
     if expected_keys.is_empty() {
-        return Err("客户端 API Key 未配置".to_string());
+        return Err("Client API Key is not configured".to_string());
     }
 
     let authorization = headers
@@ -2719,7 +2719,7 @@ fn verify_client_auth(headers: &HeaderMap, config: &GatewayConfig) -> Result<(),
     {
         Ok(())
     } else {
-        Err("客户端 API Key 无效".to_string())
+        Err("Client API Key is invalid".to_string())
     }
 }
 
@@ -2729,8 +2729,8 @@ async fn resolve_upstream_credentials(
 ) -> Result<UpstreamCredentials, String> {
     match config.account_mode.as_str() {
         "single" | "group" | "pool" => resolve_managed_account_credentials(config, state).await,
-        "local" => Err("反代不再支持 local 模式，请改用 single/group/pool 账号池模式".to_string()),
-        _ => Err("accountMode 必须是 single/group/pool".to_string()),
+        "local" => Err("Proxy no longer supports local mode, please use single/group/pool account pool mode".to_string()),
+        _ => Err("accountMode must be single/group/pool".to_string()),
     }
 }
 
@@ -2815,14 +2815,14 @@ async fn resolve_managed_account_credentials(
     };
 
     if accounts.is_empty() {
-        return Err("未找到符合反代配置的可用账号".to_string());
+        return Err("No available account found matching the gateway configuration".to_string());
     }
 
     // 使用 LoadBalancer 选择账号
     let selected_account = state.load_balancer.select_account(&accounts).await;
 
     let Some(account) = selected_account else {
-        return Err("LoadBalancer 未能选择可用账号".to_string());
+        return Err("Load balancer failed to select an available account".to_string());
     };
 
     // 增加连接计数
@@ -3883,16 +3883,6 @@ fn stream_proxy_response(
                                         }
                                         KiroEvent::ContextUsage { percentage } => {
                                             aggregated.context_usage_percentage = Some(percentage);
-                                            if matches!(format, ResponseFormat::Anthropic) {
-                                                let data =
-                                                    json!({"type":"context_usage","percentage":percentage});
-                                                send_event(
-                                                    &tx,
-                                                    Some("context_usage"),
-                                                    &data.to_string(),
-                                                )
-                                                .await;
-                                            }
                                         }
                                         KiroEvent::Thinking(text) => {
                                             aggregated.thinking.push_str(&text);
@@ -3944,11 +3934,18 @@ fn stream_proxy_response(
                                         }
                                         KiroEvent::ToolUseStart { id, name } => {
                                             saw_tool_calls = true;
-                                            tool_accumulators
+                                            let entry = tool_accumulators
                                                 .entry(id.clone())
-                                                .or_insert((name.clone(), String::new()));
+                                                .or_insert((String::new(), String::new()));
+                                            if entry.0.is_empty() {
+                                                entry.0 = name.clone();
+                                            }
                                             match format {
                                                 ResponseFormat::Anthropic => {
+                                                    if tool_block_indexes.contains_key(&id) {
+                                                        raw_buffer.drain(..consumed_bytes);
+                                                        continue;
+                                                    }
                                                     ensure_anthropic_message_start(
                                                         &tx,
                                                         &mut message_started,
@@ -3988,6 +3985,10 @@ fn stream_proxy_response(
                                                     .await;
                                                 }
                                                 ResponseFormat::Responses => {
+                                                    if responses_tool_output_indexes.contains_key(&id) {
+                                                        raw_buffer.drain(..consumed_bytes);
+                                                        continue;
+                                                    }
                                                     let output_index = responses_next_output_index;
                                                     responses_next_output_index += 1;
                                                     responses_tool_output_indexes
@@ -4008,6 +4009,10 @@ fn stream_proxy_response(
                                                     send_data(&tx, &data.to_string()).await;
                                                 }
                                                 ResponseFormat::OpenAI => {
+                                                    if openai_tool_call_indexes.contains_key(&id) {
+                                                        raw_buffer.drain(..consumed_bytes);
+                                                        continue;
+                                                    }
                                                     // OpenAI Chat Completions: 发送工具调用开始 chunk
                                                     let tool_index = openai_next_tool_index;
                                                     openai_next_tool_index += 1;
@@ -4041,19 +4046,79 @@ fn stream_proxy_response(
                                                 }
                                             }
                                         }
-                                        KiroEvent::ToolUseInputDelta { id, input_delta } => {
-                                            if let Some((_, current_input)) =
+                                        KiroEvent::ToolUseInputDelta {
+                                            id,
+                                            name,
+                                            input_delta,
+                                        } => {
+                                            let mut started_from_delta = false;
+                                            if let Some((existing_name, current_input)) =
                                                 tool_accumulators.get_mut(&id)
                                             {
+                                                if existing_name.is_empty() {
+                                                    if let Some(name) = name.as_ref() {
+                                                        *existing_name = name.clone();
+                                                    }
+                                                }
                                                 current_input.push_str(&input_delta);
                                             } else {
                                                 tool_accumulators.insert(
                                                     id.clone(),
-                                                    (String::new(), input_delta.clone()),
+                                                    (
+                                                        name.clone().unwrap_or_default(),
+                                                        input_delta.clone(),
+                                                    ),
                                                 );
+                                                started_from_delta = true;
                                             }
                                             match format {
                                                 ResponseFormat::Anthropic => {
+                                                    if !tool_block_indexes.contains_key(&id) {
+                                                        if let Some(name) = name.as_ref() {
+                                                            saw_tool_calls = true;
+                                                            ensure_anthropic_message_start(
+                                                                &tx,
+                                                                &mut message_started,
+                                                                &anthropic_id,
+                                                                &model,
+                                                                aggregated.input_tokens,
+                                                                aggregated.output_tokens,
+                                                                aggregated.cache_read_input_tokens,
+                                                                aggregated.cache_creation_input_tokens,
+                                                            )
+                                                            .await;
+                                                            close_content_block(
+                                                                &tx,
+                                                                &mut text_block_index,
+                                                            )
+                                                            .await;
+                                                            close_content_block(
+                                                                &tx,
+                                                                &mut thinking_block_index,
+                                                            )
+                                                            .await;
+                                                            let index = next_block_index;
+                                                            next_block_index += 1;
+                                                            tool_block_indexes
+                                                                .insert(id.clone(), index);
+                                                            let data = json!({
+                                                                "type": "content_block_start",
+                                                                "index": index,
+                                                                "content_block": {
+                                                                    "type": "tool_use",
+                                                                    "id": id,
+                                                                    "name": name,
+                                                                    "input": {}
+                                                                }
+                                                            });
+                                                            send_event(
+                                                                &tx,
+                                                                Some("content_block_start"),
+                                                                &data.to_string(),
+                                                            )
+                                                            .await;
+                                                        }
+                                                    }
                                                     if let Some(index) =
                                                         tool_block_indexes.get(&id).copied()
                                                     {
@@ -4074,6 +4139,29 @@ fn stream_proxy_response(
                                                     }
                                                 }
                                                 ResponseFormat::Responses => {
+                                                    if started_from_delta {
+                                                        if let Some(name) = name.as_ref() {
+                                                            let output_index =
+                                                                responses_next_output_index;
+                                                            responses_next_output_index += 1;
+                                                            responses_tool_output_indexes
+                                                                .insert(id.clone(), output_index);
+                                                            let data = json!({
+                                                                "type": "response.output_item.added",
+                                                                "response_id": response_id,
+                                                                "output_index": output_index,
+                                                                "item": {
+                                                                    "id": id,
+                                                                    "type": "function_call",
+                                                                    "status": "in_progress",
+                                                                    "call_id": id,
+                                                                    "name": name,
+                                                                    "arguments": ""
+                                                                }
+                                                            });
+                                                            send_data(&tx, &data.to_string()).await;
+                                                        }
+                                                    }
                                                     let data = json!({
                                                         "type": "response.function_call_arguments.delta",
                                                         "response_id": response_id,
@@ -4083,6 +4171,39 @@ fn stream_proxy_response(
                                                     send_data(&tx, &data.to_string()).await;
                                                 }
                                                 ResponseFormat::OpenAI => {
+                                                    if started_from_delta {
+                                                        if let Some(name) = name.as_ref() {
+                                                            let tool_index = openai_next_tool_index;
+                                                            openai_next_tool_index += 1;
+                                                            openai_tool_call_indexes
+                                                                .insert(id.clone(), tool_index);
+                                                            let chunk = stream::build_openai_chunk(
+                                                                &completion_id,
+                                                                created_at,
+                                                                &model,
+                                                                crate::gateway::models::OpenAIChatDelta {
+                                                                    role: None,
+                                                                    content: None,
+                                                                    tool_calls: Some(vec![
+                                                                        crate::gateway::models::OpenAIDeltaToolCall {
+                                                                            index: tool_index,
+                                                                            id: id.clone(),
+                                                                            call_type: "function".to_string(),
+                                                                            function: crate::gateway::models::OpenAIToolCallFunction {
+                                                                                name: name.clone(),
+                                                                                arguments: "".to_string(),
+                                                                            },
+                                                                        }
+                                                                    ]),
+                                                                },
+                                                                None,
+                                                                None,
+                                                            );
+                                                            if let Ok(chunk_json) = serde_json::to_string(&chunk) {
+                                                                send_data(&tx, &chunk_json).await;
+                                                            }
+                                                        }
+                                                    }
                                                     // OpenAI Chat Completions: 发送参数增量 chunk
                                                     if let Some(&tool_index) = openai_tool_call_indexes.get(&id) {
                                                         let chunk = stream::build_openai_chunk(
@@ -4311,6 +4432,13 @@ fn stream_proxy_response(
                     send_data(&tx, &data.to_string()).await;
                     break;
                 }
+            }
+        }
+
+        // flush any tool accumulators that were started by delta but never stopped
+        for (id, (name, input)) in tool_accumulators.drain() {
+            if !name.is_empty() {
+                aggregated.tool_calls.push((id, name, input));
             }
         }
 

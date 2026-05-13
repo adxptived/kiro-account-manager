@@ -106,19 +106,19 @@ impl SkillsManager {
 
     fn validate_skill_name(name: &str) -> Result<(), String> {
         if name.is_empty() {
-            return Err("Skill 名称不能为空".to_string());
+            return Err("Skill name cannot be empty".to_string());
         }
         if name.contains('/') || name.contains('\\') {
-            return Err("Skill 名称不能包含路径分隔符".to_string());
+            return Err("Skill name cannot contain path separators".to_string());
         }
         if name.contains("..") {
-            return Err("Skill 名称不能包含 ..".to_string());
+            return Err("Skill name cannot contain ..".to_string());
         }
 
         let path = Path::new(name);
         for comp in path.components() {
             if !matches!(comp, Component::Normal(_)) {
-                return Err("Skill 名称非法".to_string());
+                return Err("Invalid Skill name".to_string());
             }
         }
         Ok(())
@@ -129,7 +129,7 @@ impl SkillsManager {
         let candidate = base_dir.join(name);
 
         if !candidate.starts_with(base_dir) {
-            return Err("非法路径".to_string());
+            return Err("Invalid path".to_string());
         }
 
         Ok(candidate)
@@ -164,7 +164,7 @@ impl SkillsManager {
     fn normalize_import_source(source_path: &str) -> Result<PathBuf, String> {
         let raw_path = PathBuf::from(source_path);
         if !raw_path.exists() {
-            return Err("导入路径不存在".to_string());
+            return Err("Import path does not exist".to_string());
         }
 
         let source_dir = if raw_path.is_file() {
@@ -173,7 +173,7 @@ impl SkillsManager {
                 .map(|value| value.to_string_lossy().to_string())
                 .unwrap_or_default();
             if file_name != "SKILL.md" {
-                return Err("请选择 Skill 根目录或其中的 SKILL.md".to_string());
+                return Err("Please select Skill root directory or its SKILL.md".to_string());
             }
             raw_path
                 .parent()
@@ -184,11 +184,11 @@ impl SkillsManager {
         };
 
         if !source_dir.is_dir() {
-            return Err("导入路径必须是目录".to_string());
+            return Err("Import path must be a directory".to_string());
         }
 
         if !source_dir.join("SKILL.md").exists() {
-            return Err("选中的目录缺少 SKILL.md".to_string());
+            return Err("Selected directory is missing SKILL.md".to_string());
         }
 
         fs::canonicalize(&source_dir).map_err(|e| format!("解析导入目录失败: {e}"))
@@ -265,9 +265,9 @@ impl SkillsManager {
         overwrite: bool,
     ) -> Result<SkillInfo, String> {
         let parsed =
-            reqwest::Url::parse(repo_url).map_err(|_| "GitHub 仓库地址非法".to_string())?;
+            reqwest::Url::parse(repo_url).map_err(|_| "Invalid GitHub repository URL".to_string())?;
         if parsed.scheme() != "https" || parsed.host_str().unwrap_or_default() != "github.com" {
-            return Err("仅支持 https://github.com/... 仓库地址".to_string());
+            return Err("Only https://github.com/... repository URLs are supported".to_string());
         }
 
         let repo_name =
@@ -309,11 +309,11 @@ impl SkillsManager {
             let source_dir = if let Some(path_in_repo) = repo_sub_path {
                 let relative = Path::new(path_in_repo);
                 if relative.is_absolute() {
-                    return Err("仓库内路径必须是相对路径".to_string());
+                    return Err("Path within repository must be relative".to_string());
                 }
                 for component in relative.components() {
                     if !matches!(component, Component::Normal(_)) {
-                        return Err("仓库内路径非法".to_string());
+                        return Err("Invalid path within repository".to_string());
                     }
                 }
                 temp_clone_dir.join(relative)

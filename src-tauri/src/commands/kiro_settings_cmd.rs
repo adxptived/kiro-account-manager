@@ -521,7 +521,7 @@ fn set_kiro_trusted_commands_inner(
                             .filter(|s| !s.is_empty())
                             .collect();
                         if cmds.contains(&"*") {
-                            return Err("common 模式不允许使用 *，如需全部信任请切换到“全部信任”"
+                            return Err("Common mode does not allow *, switch to 'trust all' if you want to trust everything"
                                 .to_string());
                         }
                         serde_json::json!(cmds)

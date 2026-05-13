@@ -125,7 +125,7 @@ pub fn read_kiro_cli_accounts(db_path: &str) -> Result<Vec<KiroCliAccount>, Stri
     }
 
     if accounts.is_empty() {
-        return Err("未找到有效的账号数据".to_string());
+        return Err("No valid account data found".to_string());
     }
 
     Ok(accounts)

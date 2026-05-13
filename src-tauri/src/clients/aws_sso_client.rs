@@ -122,10 +122,10 @@ impl AWSSSOClient {
             if has_user_provided_input && status.as_u16() == 400 {
                 // 检查错误描述中是否包含 "invalid start url provided"
                 if text.to_lowercase().contains("invalid start url provided") {
-                    return Err("Start URL 无效。请检查您输入的 IAM Identity Center Start URL 是否正确。\n\n示例格式：https://d-1234567890.awsapps.com/start".to_string());
+                    return Err("Invalid Start URL. Please check your IAM Identity Center Start URL.\n\nExample format: https://d-1234567890.awsapps.com/start".to_string());
                 }
                 // 其他 400 错误可能是 region 不匹配
-                return Err(format!("注册客户端失败 (400 Bad Request)\n\n可能的原因：\n1. Region 选择错误（请确认您的 IAM Identity Center 所在的 Region）\n2. Start URL 格式错误\n\n错误详情: {text}"));
+                return Err(format!("Client registration failed (400 Bad Request)\n\nPossible reasons:\n1. Incorrect Region selected (please confirm the Region where your IAM Identity Center is located)\n2. Invalid Start URL format\n\nError details: {text}"));
             }
             return Err(format!("Client registration failed ({status}): {text}"));
         }
@@ -239,9 +239,9 @@ impl AWSSSOClient {
                     && text.to_lowercase().contains("refresh")
                 {
                     // invalid_grant 错误：静默返回，不显示详细错误信息
-                    return Err("AUTH_ERROR: RefreshToken 已失效".to_string());
+                    return Err("AUTH_ERROR: Refresh token has expired".to_string());
                 }
-                return Err(format!("Token refresh failed (400 Bad Request)\n\n可能的原因：\n1. Region 选择错误\n2. RefreshToken 无效\n\n错误详情: {text}"));
+                return Err(format!("Token refresh failed (400 Bad Request)\n\nPossible reasons:\n1. Incorrect Region selected\n2. Invalid RefreshToken\n\nError details: {text}"));
             }
             return Err(format!("Token refresh failed ({status}): {text}"));
         }

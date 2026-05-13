@@ -342,10 +342,18 @@ fn read_non_empty_string_field(
     })
 }
 /// 从 `usage_data` 中提取 `email` 和 `user_id`
-/// 兼容 `userInfo.email/userInfo.userId` 与顶层 `email/userId`
+/// 兼容 `userInfo.email/userInfo.userId` 与顶层 `email/userId`，
+/// 同时对 Enterprise / OIDC 等场景额外兼容 `sub` / `id` / `username` / `name`
 pub fn extract_user_info(usage_data: &serde_json::Value) -> (Option<String>, Option<String>) {
-    let email = read_non_empty_string_field(usage_data, &["userInfo", "email"], "email");
-    let user_id = read_non_empty_string_field(usage_data, &["userInfo", "userId"], "userId");
+    let email = read_non_empty_string_field(usage_data, &["userInfo", "email"], "email")
+        .or_else(|| read_non_empty_string_field(usage_data, &["userInfo", "username"], "username"))
+        .or_else(|| read_non_empty_string_field(usage_data, &["userInfo", "name"], "name"));
+
+    let user_id = read_non_empty_string_field(usage_data, &["userInfo", "userId"], "userId")
+        .or_else(|| read_non_empty_string_field(usage_data, &["userInfo", "sub"], "sub"))
+        .or_else(|| read_non_empty_string_field(usage_data, &["userInfo", "id"], "id"))
+        .or_else(|| read_non_empty_string_field(usage_data, &["userInfo", "username"], "username"));
+
     (email, user_id)
 }
 

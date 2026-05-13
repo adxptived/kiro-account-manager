@@ -81,10 +81,10 @@ impl SteeringManager {
 
     fn sanitize_file_name(file_name: &str) -> Result<&str, String> {
         if file_name.trim().is_empty() {
-            return Err("文件名不能为空".to_string());
+            return Err("File name cannot be empty".to_string());
         }
         if !file_name.ends_with(".md") {
-            return Err("Steering 文件必须以 .md 结尾".to_string());
+            return Err("Steering file must end with .md".to_string());
         }
 
         let path = Path::new(file_name);
@@ -92,7 +92,7 @@ impl SteeringManager {
         let only_normal =
             matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none();
         if !only_normal {
-            return Err("文件名不合法".to_string());
+            return Err("Invalid file name".to_string());
         }
 
         Ok(file_name)

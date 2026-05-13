@@ -485,7 +485,7 @@ pub struct KiroToolUse {
     pub tool_use_id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct AnthropicMessagesRequest {
     pub model: String,
     pub messages: Vec<AnthropicMessage>,
@@ -647,7 +647,7 @@ pub struct AnthropicMessage {
     pub content: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct AnthropicTool {
     #[serde(default)]
     pub r#type: Option<String>,

@@ -71,7 +71,7 @@ pub fn register_waiter(state: &str) -> DeepLinkCallbackWaiter {
         .lock()
         .expect("Failed to acquire pending sender lock");
     if let Some((_state, previous_tx)) = guard.take() {
-        let _ = previous_tx.send(Err("登录已取消".to_string()));
+        let _ = previous_tx.send(Err("Login cancelled".to_string()));
     }
     *guard = Some((state.to_string(), tx));
 
@@ -92,7 +92,7 @@ pub fn cancel_waiter() -> bool {
     let Some((_state, tx)) = guard.take() else {
         return false;
     };
-    let _ = tx.send(Err("登录已取消".to_string()));
+    let _ = tx.send(Err("Login cancelled".to_string()));
     true
 }
 
@@ -221,7 +221,7 @@ mod tests {
 
         let result = first.wait_for_callback();
 
-        assert!(matches!(result, Err(message) if message == "登录已取消"));
+        assert!(matches!(result, Err(message) if message == "Login cancelled"));
     }
 
     #[test]

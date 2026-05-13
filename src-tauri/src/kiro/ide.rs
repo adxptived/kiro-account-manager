@@ -150,7 +150,7 @@ pub async fn read_kiro_accounts() -> Result<Vec<KiroAccountInfo>, String> {
             .join("cache");
 
         if !cache_dir.exists() {
-            return Err("未找到 Kiro IDE 缓存目录".to_string());
+            return Err("Kiro IDE cache directory not found".to_string());
         }
 
         let mut accounts = Vec::new();
@@ -201,7 +201,7 @@ pub async fn read_kiro_accounts() -> Result<Vec<KiroAccountInfo>, String> {
         }
 
         if accounts.is_empty() {
-            return Err("未找到 Kiro IDE 账号，请先在 Kiro IDE 中登录".to_string());
+            return Err("No Kiro IDE account found, please login in Kiro IDE first".to_string());
         }
 
         Ok(accounts)
@@ -366,7 +366,7 @@ pub async fn switch_kiro_account(
                 // 设置文件权限为 0600（仅 Unix 系统）
                 set_file_permissions(&client_reg_path).ok();
             } else {
-                return Err("IdC 账号必须提供 client_id 和 client_secret".to_string());
+                return Err("IdC account must provide client_id and client_secret".to_string());
             }
         }
 

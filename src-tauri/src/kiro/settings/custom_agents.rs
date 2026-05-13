@@ -78,19 +78,19 @@ impl CustomAgentsManager {
 
     fn validate_file_name(file_name: &str) -> Result<(), String> {
         if file_name.is_empty() {
-            return Err("文件名不能为空".to_string());
+            return Err("File name cannot be empty".to_string());
         }
         if file_name.contains('/') || file_name.contains('\\') {
-            return Err("文件名不能包含路径分隔符".to_string());
+            return Err("File name cannot contain path separators".to_string());
         }
         if file_name.contains("..") {
-            return Err("文件名不能包含 ..".to_string());
+            return Err("File name cannot contain ..".to_string());
         }
 
         let path = Path::new(file_name);
         for comp in path.components() {
             if !matches!(comp, Component::Normal(_)) {
-                return Err("文件名非法".to_string());
+                return Err("Invalid file name".to_string());
             }
         }
         Ok(())
@@ -101,7 +101,7 @@ impl CustomAgentsManager {
         let candidate = base_dir.join(file_name);
 
         if !candidate.starts_with(base_dir) {
-            return Err("非法路径".to_string());
+            return Err("Invalid path".to_string());
         }
 
         Ok(candidate)

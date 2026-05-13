@@ -226,19 +226,19 @@ impl PowersManager {
 
     fn validate_power_name(name: &str) -> Result<(), String> {
         if name.is_empty() {
-            return Err("Power 名称不能为空".to_string());
+            return Err("Power name cannot be empty".to_string());
         }
         if name.contains('/') || name.contains('\\') {
-            return Err("Power 名称不能包含路径分隔符".to_string());
+            return Err("Power name cannot contain path separators".to_string());
         }
         if name.contains("..") {
-            return Err("Power 名称不能包含 ..".to_string());
+            return Err("Power name cannot contain ..".to_string());
         }
 
         let path = Path::new(name);
         for comp in path.components() {
             if !matches!(comp, Component::Normal(_)) {
-                return Err("Power 名称非法".to_string());
+                return Err("Invalid Power name".to_string());
             }
         }
         Ok(())
@@ -249,7 +249,7 @@ impl PowersManager {
             return Ok(());
         }
         if branch.starts_with('-') {
-            return Err("分支名非法".to_string());
+            return Err("Invalid branch name".to_string());
         }
         if branch.contains('\0')
             || branch.contains(' ')
@@ -257,7 +257,7 @@ impl PowersManager {
             || branch.contains('\n')
             || branch.contains('\r')
         {
-            return Err("分支名非法".to_string());
+            return Err("Invalid branch name".to_string());
         }
         if branch.contains("..")
             || branch.contains("~")
@@ -267,7 +267,7 @@ impl PowersManager {
             || branch.contains('*')
             || branch.contains("\\")
         {
-            return Err("分支名非法".to_string());
+            return Err("Invalid branch name".to_string());
         }
         if branch.ends_with('.')
             || branch.ends_with('/')
@@ -275,7 +275,7 @@ impl PowersManager {
             || branch.contains("@{")
             || branch.contains("//")
         {
-            return Err("分支名非法".to_string());
+            return Err("Invalid branch name".to_string());
         }
         Ok(())
     }
@@ -285,12 +285,12 @@ impl PowersManager {
         let parsed = reqwest::Url::parse(&https_url).map_err(|_| "仓库 URL 非法".to_string())?;
 
         if parsed.scheme() != "https" {
-            return Err("仅允许 https 仓库地址".to_string());
+            return Err("Only https repository URLs are allowed".to_string());
         }
 
         let host = parsed.host_str().unwrap_or_default().to_ascii_lowercase();
         if host != "github.com" {
-            return Err("仅允许 github.com 仓库地址".to_string());
+            return Err("Only github.com repository URLs are allowed".to_string());
         }
 
         let mut segs = parsed
@@ -301,7 +301,7 @@ impl PowersManager {
         let owner = segs.next().unwrap_or_default();
         let repo = segs.next().unwrap_or_default();
         if owner.is_empty() || repo.is_empty() {
-            return Err("仓库地址必须包含 owner/repo".to_string());
+            return Err("Repository URL must contain owner/repo".to_string());
         }
 
         Ok(())
@@ -312,7 +312,7 @@ impl PowersManager {
         let candidate = base_dir.join(name);
 
         if !candidate.starts_with(base_dir) {
-            return Err("非法路径".to_string());
+            return Err("Invalid path".to_string());
         }
 
         Ok(candidate)
@@ -325,18 +325,18 @@ impl PowersManager {
 
         let relative = Path::new(path_in_repo);
         if relative.is_absolute() {
-            return Err("仓库内路径必须是相对路径".to_string());
+            return Err("Path within repository must be relative".to_string());
         }
 
         for comp in relative.components() {
             if !matches!(comp, Component::Normal(_)) {
-                return Err("仓库内路径非法".to_string());
+                return Err("Invalid path within repository".to_string());
             }
         }
 
         let candidate = clone_path.join(relative);
         if !candidate.starts_with(clone_path) {
-            return Err("仓库内路径非法".to_string());
+            return Err("Invalid path within repository".to_string());
         }
 
         Ok(candidate)
@@ -521,7 +521,7 @@ impl PowersManager {
 
         if !source_path_canonical.starts_with(&clone_path_canonical) {
             let _ = fs::remove_dir_all(&clone_path);
-            return Err("仓库内路径非法".to_string());
+            return Err("Invalid path within repository".to_string());
         }
 
         let source_path = source_path_canonical;

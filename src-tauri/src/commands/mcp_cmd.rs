@@ -42,13 +42,13 @@ fn validate_mcp_server(config: &McpServer) -> Result<(), String> {
         McpServer::Command(cmd) => {
             // 验证 command 字段
             if cmd.command.trim().is_empty() {
-                return Err("command 字段不能为空".to_string());
+                return Err("command field cannot be empty".to_string());
             }
 
             // 验证 autoApprove 字段（可选）
             for tool in &cmd.auto_approve {
                 if tool.trim().is_empty() {
-                    return Err("autoApprove 中不能包含空字符串".to_string());
+                    return Err("autoApprove cannot contain empty strings".to_string());
                 }
             }
 
@@ -57,12 +57,12 @@ fn validate_mcp_server(config: &McpServer) -> Result<(), String> {
         McpServer::Url(url_config) => {
             // 验证 URL 格式
             if url_config.url.trim().is_empty() {
-                return Err("url 字段不能为空".to_string());
+                return Err("url field cannot be empty".to_string());
             }
 
             // 简单的 URL 格式验证
             if !url_config.url.starts_with("http://") && !url_config.url.starts_with("https://") {
-                return Err("url 必须以 http:// 或 https:// 开头".to_string());
+                return Err("url must start with http:// or https://".to_string());
             }
 
             Ok(())

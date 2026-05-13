@@ -38,7 +38,7 @@ fn set_pending_login(tx: CallbackSender, cancelled: Arc<AtomicBool>) {
             .expect("Failed to acquire callback lock")
             .take()
         {
-            let _ = previous_tx.send(Err("登录已取消".to_string()));
+            let _ = previous_tx.send(Err("Login cancelled".to_string()));
         }
     }
     *guard = Some(PendingIdcLogin { tx, cancelled });
@@ -70,7 +70,7 @@ pub fn cancel_pending_login() -> bool {
         .expect("Failed to acquire callback lock")
         .take()
     {
-        let _ = tx.send(Err("登录已取消".to_string()));
+        let _ = tx.send(Err("Login cancelled".to_string()));
     }
     true
 }
@@ -140,31 +140,31 @@ fn parse_callback_url(url: &str, expected_state: &str) -> Result<String, String>
         .collect();
 
     let Some(returned_state) = params.get("state") else {
-        return Err("未收到 state".to_string());
+        return Err("State parameter not received".to_string());
     };
     if *returned_state != expected_state {
-        return Err("State 不匹配".to_string());
+        return Err("State mismatch".to_string());
     }
 
     if let Some(error) = params.get("error") {
         let desc = params
             .get("error_description")
             .map(std::string::String::as_str)
-            .unwrap_or("未知错误");
+            .unwrap_or("Unknown error");
         return Err(format!("{error}: {desc}"));
     }
 
     params
         .get("code")
         .map(|c| (*c).to_string())
-        .ok_or_else(|| "未收到授权码".to_string())
+        .ok_or_else(|| "Authorization code not received".to_string())
 }
 
 fn build_callback_page(result: &Result<String, String>) -> String {
     match result {
-        Ok(_) => "<html><body><h1>授权成功</h1><p>您可以关闭此窗口</p></body></html>".to_string(),
+        Ok(_) => "<html><body><h1>Authorization successful</h1><p>You can close this window</p></body></html>".to_string(),
         Err(message) => format!(
-            "<html><body><h1>授权失败</h1><p>{}</p><p>您可以关闭此窗口并重试</p></body></html>",
+            "<html><body><h1>Authorization failed</h1><p>{}</p><p>You can close this window and try again</p></body></html>",
             escape_html(message)
         ),
     }
@@ -198,7 +198,7 @@ fn spawn_callback_listener(
 
             if start.elapsed() > timeout {
                 if let Some(tx) = tx.lock().expect("Failed to acquire callback lock").take() {
-                    let _ = tx.send(Err("授权超时".to_string()));
+                    let _ = tx.send(Err("Authorization timeout".to_string()));
                 }
                 break;
             }
@@ -445,7 +445,7 @@ mod tests {
     fn parse_callback_url_rejects_missing_state() {
         let result = parse_callback_url("/oauth/callback?code=auth-code", "expected-state");
 
-        assert_eq!(result, Err("未收到 state".to_string()));
+        assert_eq!(result, Err("State parameter not received".to_string()));
     }
 
     #[test]
@@ -460,11 +460,11 @@ mod tests {
 
     #[test]
     fn build_callback_page_surfaces_failure_message() {
-        let page = build_callback_page(&Err("State 不匹配".to_string()));
+        let page = build_callback_page(&Err("State mismatch".to_string()));
 
-        assert!(page.contains("授权失败"));
-        assert!(page.contains("State 不匹配"));
-        assert!(!page.contains("授权成功"));
+        assert!(page.contains("Authorization failed"));
+        assert!(page.contains("State mismatch"));
+        assert!(!page.contains("Authorization successful"));
     }
 
     #[test]
@@ -487,6 +487,6 @@ mod tests {
         let first_result = first_rx
             .try_recv()
             .expect("first waiter should resolve immediately");
-        assert_eq!(first_result, Err("登录已取消".to_string()));
+        assert_eq!(first_result, Err("Login cancelled".to_string()));
     }
 }

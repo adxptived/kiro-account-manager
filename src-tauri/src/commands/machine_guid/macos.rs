@@ -180,7 +180,7 @@ pub fn reset_machine_guid_inner() -> Result<String, String> {
 
 pub fn set_custom_machine_guid_inner(new_guid: String) -> Result<String, String> {
     if !is_valid_machine_id(&new_guid) {
-        return Err("无效的机器码格式".to_string());
+        return Err("Invalid machine code format".to_string());
     }
     let formatted = new_guid.to_lowercase();
     write_all_machine_ids(&formatted)?;

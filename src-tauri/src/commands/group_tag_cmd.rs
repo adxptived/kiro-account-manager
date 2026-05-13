@@ -231,7 +231,7 @@ pub fn set_account_group(
         save_account_store(&store)?;
         Ok(())
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 
@@ -258,7 +258,7 @@ pub fn add_tag_to_account(
         }
         Ok(())
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 
@@ -274,7 +274,7 @@ pub fn remove_tag_from_account(
         save_account_store(&store)?;
         Ok(())
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 
@@ -300,7 +300,7 @@ pub fn set_account_tags(
         save_account_store(&store)?;
         Ok(())
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 
@@ -316,7 +316,7 @@ pub fn remove_account_tags(
         save_account_store(&store)?;
         Ok(())
     } else {
-        Err("账号不存在".to_string())
+        Err("Account not found".to_string())
     }
 }
 

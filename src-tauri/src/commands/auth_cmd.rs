@@ -28,23 +28,28 @@ fn save_store(store: &crate::core::account::AccountStore) -> Result<(), String> 
     if store.save_to_file() {
         Ok(())
     } else {
-        Err("保存账号数据失败".to_string())
+        Err("Failed to save account data".to_string())
     }
 }
 
 fn require_login_email(email: Option<String>) -> Result<String, String> {
-    email.ok_or("获取邮箱失败，请检查账号状态".to_string())
+    email.ok_or("Failed to get email, please check account status".to_string())
 }
 
 fn resolve_idc_login_email(
     provider_id: &str,
     email: Option<String>,
     user_id: Option<String>,
+    refresh_token: Option<&str>,
 ) -> Result<String, String> {
     if provider_id == "Enterprise" {
-        email
-            .or(user_id)
-            .ok_or_else(|| format!("{} 账号缺少 userId 或 email", provider_id))
+        email.or(user_id).or_else(|| {
+            // Enterprise 账号允许没有标准 email/userId，使用 refresh_token 前缀生成稳定标识
+            refresh_token.map(|rt| {
+                let prefix = if rt.len() > 12 { &rt[..12] } else { rt };
+                format!("enterprise_{}", prefix)
+            })
+        }).ok_or_else(|| format!("{} account is missing userId, email or refresh_token", provider_id))
     } else if provider_id == "BuilderId" {
         // BuilderId 允许没有 email/userId
         Ok(email.or(user_id).unwrap_or_else(|| "builderid_unknown".to_string()))
@@ -184,7 +189,7 @@ async fn login_social(
     // 封禁账号直接报错
     if usage_result.is_banned {
         *lock_state(&state.pending_login, "pending_login")? = None;
-        return Err("BANNED: 账号已被封禁".to_string());
+        return Err("BANNED: Account banned".to_string());
     }
 
     let (new_email, user_id) = extract_user_info(&usage_result.usage_data);
@@ -265,13 +270,18 @@ async fn login_idc(
 
     // 封禁账号直接报错
     if usage_result.is_banned {
-        return Err("BANNED: 账号已被封禁".to_string());
+        return Err("BANNED: Account banned".to_string());
     }
 
     let (new_email, user_id) = extract_user_info(&usage_result.usage_data);
 
-    // Enterprise 账号允许没有 email,使用 userId 作为标识
-    let final_email = resolve_idc_login_email(&provider_id, new_email.clone(), user_id.clone())?;
+    // Enterprise 账号允许没有 email,使用 userId 或 refresh_token 前缀作为标识
+    let final_email = resolve_idc_login_email(
+        &provider_id,
+        new_email.clone(),
+        user_id.clone(),
+        Some(&auth_result.refresh_token),
+    )?;
 
     let mut store = lock_state(&state.store, "store")?;
     let existing_idx = find_existing_account_idx(
@@ -399,7 +409,7 @@ pub async fn handle_kiro_social_callback(
         get_usage_by_provider(&pending.provider, &token_response.access_token).await?;
 
     if usage_result.is_banned {
-        return Err("BANNED: 账号已被封禁".to_string());
+        return Err("BANNED: Account banned".to_string());
     }
 
     let (new_email, user_id) = extract_user_info(&usage_result.usage_data);
@@ -483,25 +493,32 @@ mod tests {
         );
         assert_eq!(
             require_login_email(None).unwrap_err(),
-            "获取邮箱失败，请检查账号状态".to_string()
+            "Failed to get email, please check account status".to_string()
         );
     }
 
     #[test]
     fn resolve_idc_login_email_uses_enterprise_user_id_fallback() {
         assert_eq!(
-            resolve_idc_login_email("Enterprise", None, Some("enterprise-user".to_string()))
+            resolve_idc_login_email("Enterprise", None, Some("enterprise-user".to_string()), None)
                 .unwrap(),
             "enterprise-user".to_string()
         );
         assert_eq!(
-            resolve_idc_login_email("BuilderId", None, Some("builder-user".to_string()))
+            resolve_idc_login_email("BuilderId", None, Some("builder-user".to_string()), None)
                 .unwrap(),
             "builder-user".to_string()
         );
+        // 有 refresh_token 时，即使没有 email/userId，也能生成稳定标识（取前 12 位）
         assert_eq!(
-            resolve_idc_login_email("Enterprise", None, None).unwrap_err(),
-            "Enterprise 账号缺少 userId 或 email".to_string()
+            resolve_idc_login_email("Enterprise", None, None, Some("rt_abc123456789"))
+                .unwrap(),
+            "enterprise_rt_abc123456".to_string()
+        );
+        // 完全没有标识时仍然报错
+        assert_eq!(
+            resolve_idc_login_email("Enterprise", None, None, None).unwrap_err(),
+            "Enterprise account is missing userId, email or refresh_token".to_string()
         );
     }
 

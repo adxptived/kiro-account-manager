@@ -180,7 +180,7 @@ fn open_with_custom_browser(browser_path: &str, url: &str) -> Result<(), String>
 fn parse_browser_command(browser_path: &str) -> Result<(String, Vec<String>), String> {
     let browser_path = browser_path.trim();
     if browser_path.is_empty() {
-        return Err("浏览器路径为空".to_string());
+        return Err("Browser path is empty".to_string());
     }
 
     if let Some(stripped) = browser_path.strip_prefix('"') {
@@ -200,7 +200,7 @@ fn parse_browser_command(browser_path: &str) -> Result<(String, Vec<String>), St
 
     let parts: Vec<&str> = browser_path.split_whitespace().collect();
     if parts.is_empty() {
-        return Err("浏览器路径为空".to_string());
+        return Err("Browser path is empty".to_string());
     }
 
     let arg_start = parts

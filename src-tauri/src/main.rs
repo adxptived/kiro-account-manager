@@ -67,8 +67,8 @@ use commands::group_tag_cmd::{
 };
 //kiro-cli
 use commands::kiro_cli_cmd::{
-    check_cli_installation, get_kiro_cli_default_path, import_from_kiro_cli,
-    read_cli_db_snapshot, rollback_cli_switch, switch_to_cli_account,
+    build_cli_switch_payload, check_cli_installation, get_kiro_cli_default_path,
+    import_from_kiro_cli, read_cli_db_snapshot, rollback_cli_switch, switch_to_cli_account,
 };
 //kiroshe
 use commands::kiro_settings_cmd::{
@@ -404,6 +404,7 @@ fn main() {
             read_cli_db_snapshot,
             switch_to_cli_account,
             rollback_cli_switch,
+            build_cli_switch_payload,
             // 分组与标签命令
             get_groups,
             add_group,
