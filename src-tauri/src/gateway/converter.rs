@@ -16,7 +16,7 @@ use std::{
 use tokio::net::lookup_host;
 use uuid::Uuid;
 
-pub const TOOL_DESCRIPTION_MAX_LENGTH: usize = 1024;
+pub const TOOL_DESCRIPTION_MAX_LENGTH: usize = 10237;
 const WEB_SEARCH_TOOL_NAME: &str = "web_search";
 const WEB_SEARCH_TOOL_DESCRIPTION: &str =
     "Search the web for current information and return relevant results.";
@@ -71,6 +71,16 @@ pub fn normalize_anthropic_request(request: &AnthropicMessagesRequest) -> Normal
 
     // 检测模型名是否包含 "thinking" 后缀，若包含则自动启用 thinking
     override_thinking_from_model_name(&mut normalized);
+
+    // 所有 Claude 模型都支持 prompt caching，直接启用
+    // 在第一条消息的 metadata 中添加 cache_point 信息
+    if let Some(first_message) = normalized.messages.first_mut() {
+        let mut metadata = first_message.metadata.clone().unwrap_or_else(|| json!({}));
+        if let Some(obj) = metadata.as_object_mut() {
+            obj.insert("cache_point".to_string(), json!({"type": "default"}));
+        }
+        first_message.metadata = Some(metadata);
+    }
 
     normalized
 }
@@ -256,7 +266,7 @@ fn build_normalized_request_from_payload(
         stream: payload
             .get("stream")
             .and_then(Value::as_bool)
-            .unwrap_or(false),
+            .unwrap_or(true),  // 默认使用流式响应
         max_tokens: payload
             .get("max_output_tokens")
             .or_else(|| payload.get("max_tokens"))
@@ -821,6 +831,16 @@ pub async fn build_kiro_payload(
     };
     let current_images = extract_images(client, current_message.content.as_ref()).await;
 
+    // 从 metadata 中提取 cache_point 信息
+    // 所有 Claude 模型都支持 prompt caching，直接启用
+    let cache_point = request
+        .messages
+        .first()
+        .and_then(|msg| msg.metadata.as_ref())
+        .and_then(|meta| meta.get("cache_point"))
+        .cloned()
+        .unwrap_or_else(|| json!({"type": "default"}));
+
     // 始终设置 agent_continuation_id 和 agent_task_type
     // 根据抓包验证，Kiro API 在所有情况下都接受这两个字段
     Ok(KiroPayload {
@@ -834,7 +854,8 @@ pub async fn build_kiro_payload(
                     content: current_content,
                     model_id,
                     origin: "AI_EDITOR".to_string(),
-                    cache_point: None,
+                    // 所有 Claude 模型都支持 prompt caching，始终启用
+                    cache_point: Some(cache_point),
                     client_cache_config: None,
                     documents: None,
                     images: images_option(current_images),

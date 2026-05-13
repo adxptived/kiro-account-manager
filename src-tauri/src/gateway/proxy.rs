@@ -41,7 +41,7 @@ const MAX_FAILURES_PER_ACCOUNT: u32 = 3;
 const MAX_KIRO_PAYLOAD_SIZE: usize = 615 * 1024; // 615KB - Kiro API 的 HTTP 请求大小限制
 
 // Token 限制的默认值（当无法从 API 获取时使用）
-const SUMMARIZATION_THRESHOLD_PERCENT: f64 = 0.8; // 80% 触发总结（Kiro IDE 的阈值）
+const SUMMARIZATION_THRESHOLD_PERCENT: f64 = 0.95; // 95% 触发总结（给用户更多空间）
 
 use super::{
     append_gateway_request_log,
@@ -249,6 +249,7 @@ struct WebSearchSource {
 
 type UpstreamRequestError = (StatusCode, &'static str, String, Option<String>);
 
+#[allow(dead_code)]
 const STREAMING_RESPONSE_PLACEHOLDER: &str = "[streaming response omitted from request log]";
 const MAX_SERVER_WEB_SEARCH_ITERATIONS: usize = 8;
 
@@ -262,6 +263,8 @@ struct RequestLogContext<'a> {
     started_at: Instant,
     #[allow(dead_code)]
     request_body: Option<&'a str>,
+    /// 从原始请求体提取的 model（用于错误日志）
+    model_hint: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -394,10 +397,128 @@ fn estimate_request_tokens(messages: &[NormalizedMessage], model_id: &str) -> us
                     tokens += estimate_text_tokens(&tool_call.function.arguments, tokenizer_type);
                 }
             }
-
             tokens
-        })
-        .sum()
+})
+.sum()
+}
+
+/// 智能裁剪消息列表到目标 token 数
+///
+/// 策略：
+/// 1. 保留最后一条用户消息（当前请求）
+/// 2. 保留系统消息（system）
+/// 3. 从最旧的消息开始删除，直到满足目标 token 数
+/// 4. 至少保留 2 条消息（system + 最后一条用户消息）
+///
+/// 返回：是否成功裁剪
+fn trim_messages_by_tokens(
+            messages: &mut Vec<NormalizedMessage>,
+            target_tokens: usize,
+            model_id: &str,
+) -> bool {
+            if messages.len() <= 2 {
+                // 消息太少，无法继续裁剪
+                return false;
+            }
+
+            let current_tokens = estimate_request_tokens(messages, model_id);
+            if current_tokens <= target_tokens {
+                // 已经满足目标，无需裁剪
+                return true;
+            }
+
+            // 找到最后一条用户消息的索引
+            let last_user_idx = messages
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, msg)| msg.role == "user")
+                .map(|(idx, _)| idx);
+
+            if last_user_idx.is_none() {
+                // 没有用户消息，无法裁剪
+                return false;
+            }
+
+            let last_user_idx = last_user_idx.unwrap();
+
+            // 收集需要保留的索引：系统消息 + 最后一条用户消息
+            let mut keep_indices: Vec<usize> = messages
+                .iter()
+                .enumerate()
+                .filter(|(idx, msg)| msg.role == "system" || *idx == last_user_idx)
+                .map(|(idx, _)| idx)
+                .collect();
+
+            // 从最新到最旧，逐步添加消息，直到接近目标 token 数
+            for idx in (0..messages.len()).rev() {
+                if keep_indices.contains(&idx) {
+                    continue;
+                }
+
+                // 尝试添加这条消息
+                let mut test_messages: Vec<NormalizedMessage> = keep_indices
+                    .iter()
+                    .chain(std::iter::once(&idx))
+                    .map(|&i| messages[i].clone())
+                    .collect();
+
+                // 按原始顺序排序
+                test_messages.sort_by_key(|msg| {
+                    messages.iter().position(|m| {
+                        m.role == msg.role && m.content == msg.content
+                    }).unwrap_or(0)
+                });
+
+                let test_tokens = estimate_request_tokens(&test_messages, model_id);
+                if test_tokens <= target_tokens {
+                    keep_indices.push(idx);
+                } else {
+                    // 超过目标，停止添加
+                    break;
+                }
+            }
+
+            // 按原始顺序重建消息列表
+            keep_indices.sort_unstable();
+            let trimmed_messages: Vec<NormalizedMessage> = keep_indices
+                .iter()
+                .map(|&idx| messages[idx].clone())
+                .collect();
+
+            if trimmed_messages.len() < 2 {
+                // 裁剪后消息太少
+                return false;
+            }
+            *messages = trimmed_messages;
+            true
+}
+
+fn extract_plain_text(value: Option<&Value>) -> String {
+    match value {
+        Some(Value::String(text)) => text.clone(),
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter_map(|item| {
+                item.get("text")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+                    .or_else(|| {
+                        item.get("content")
+                            .and_then(Value::as_str)
+                            .map(str::to_string)
+                    })
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+        Some(Value::Object(map)) => map
+            .get("text")
+            .and_then(Value::as_str)
+            .or_else(|| map.get("content").and_then(Value::as_str))
+            .unwrap_or_default()
+            .to_string(),
+        _ => String::new(),
+    }
 }
 
 /// 估算单个文本的 token 数量（支持多种模型）
@@ -581,7 +702,7 @@ fn trim_kiro_payload_history(payload: &mut Value, max_bytes: usize) -> bool {
                     history.remove(0);
                     history.remove(0); // 删除第二条（现在变成第一条了）
                     removed_count += 2;
-                    log::debug!("[Gateway] Removed tool call/result pair. Remaining: {}", history.len());
+                    log::debug!("[网关] 移除工具调用/结果对。剩余: {}", history.len());
                     continue;
                 } else {
                     // 删除后会少于 2 条消息，停止裁剪
@@ -593,7 +714,7 @@ fn trim_kiro_payload_history(payload: &mut Value, max_bytes: usize) -> bool {
         // 单个消息可以安全删除
         history.remove(0);
         removed_count += 1;
-        log::debug!("[Gateway] Removed single message. Remaining: {}", history.len());
+        log::debug!("[网关] 移除单条消息。剩余: {}", history.len());
     }
 
     let final_len = payload
@@ -606,7 +727,7 @@ fn trim_kiro_payload_history(payload: &mut Value, max_bytes: usize) -> bool {
 
     if trimmed {
         log::info!(
-            "[Gateway] Trimmed history from {} to {} messages (removed {} messages)",
+            "[网关] 历史记录从 {} 条消息裁剪到 {} 条 (移除了 {} 条消息)",
             original_len,
             final_len,
             removed_count
@@ -636,6 +757,7 @@ async fn guarded_local_response(
         upstream: None,
         started_at,
         request_body,
+        model_hint: None,
     };
 
     if state.config.local_only && !client_addr.ip().is_loopback() {
@@ -693,6 +815,7 @@ async fn guarded_local_response(
         StatusCode::OK,
         "success",
         None,
+        None, // error_type
         Some(serialized.as_str()),
         None, // input_tokens
         None, // output_tokens
@@ -764,11 +887,21 @@ fn serialize_logged_value(value: &Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
 
+/// 从原始请求体 JSON 中提取 model 字段（用于错误日志）
+fn extract_model_from_payload(payload_str: &str) -> Option<String> {
+    serde_json::from_str::<Value>(payload_str)
+        .ok()?
+        .get("model")?
+        .as_str()
+        .map(String::from)
+}
+
 fn write_request_log(
     context: &RequestLogContext<'_>,
     status: StatusCode,
     outcome: &str,
     error: Option<&str>,
+    error_type: Option<&str>,
     _response_body: Option<&str>,
     input_tokens: Option<i32>,
     output_tokens: Option<i32>,
@@ -776,18 +909,66 @@ fn write_request_log(
     cache_creation_input_tokens: Option<i32>,
 ) {
 
-    
+
     let duration_ms = context
         .started_at
         .elapsed()
         .as_millis()
         .min(u128::from(u64::MAX)) as u64;
+
+    // 添加日志：记录 token 信息
+    let has_tokens = input_tokens.is_some() || output_tokens.is_some();
+    let has_valid_tokens = input_tokens.unwrap_or(0) > 0 || output_tokens.unwrap_or(0) > 0;
+
+    if has_tokens {
+        if has_valid_tokens {
+            log::info!(
+                "[网关日志] 请求 #{} | 端点={} | 模型={:?} | 流式={} | 状态={} | 耗时={}ms | 输入={} | 输出={} | 缓存读取={} | 缓存创建={}",
+                context.request_index,
+                context.endpoint,
+                context.request.map(|r| r.model.as_str()).or(context.model_hint.as_deref()),
+                context.request.map(|r| r.stream).unwrap_or(false),
+                status.as_u16(),
+                duration_ms,
+                input_tokens.unwrap_or(0),
+                output_tokens.unwrap_or(0),
+                cache_read_input_tokens.map(|v| v.to_string()).unwrap_or_else(|| "0".to_string()),
+                cache_creation_input_tokens.map(|v| v.to_string()).unwrap_or_else(|| "0".to_string())
+            );
+        } else {
+            log::warn!(
+                "[网关日志] ⚠️  请求 #{} | 端点={} | 模型={:?} | 流式={} | 状态={} | 耗时={}ms | 输入={} | 输出={} | 缓存读取={} | 缓存创建={} | 警告: 所有 token 都为 0!",
+                context.request_index,
+                context.endpoint,
+                context.request.map(|r| r.model.as_str()).or(context.model_hint.as_deref()),
+                context.request.map(|r| r.stream).unwrap_or(false),
+                status.as_u16(),
+                duration_ms,
+                input_tokens.unwrap_or(0),
+                output_tokens.unwrap_or(0),
+                cache_read_input_tokens.map(|v| v.to_string()).unwrap_or_else(|| "0".to_string()),
+                cache_creation_input_tokens.map(|v| v.to_string()).unwrap_or_else(|| "0".to_string())
+            );
+        }
+    } else {
+        log::debug!(
+            "[网关日志] 请求 #{} | 端点={} | 状态={} | 耗时={}ms | 无 token 信息",
+            context.request_index,
+            context.endpoint,
+            status.as_u16(),
+            duration_ms
+        );
+    }
+
     let entry = GatewayRequestLogEntry {
         occurred_at: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
         request_index: context.request_index,
         endpoint: context.endpoint.to_string(),
         client_ip: context.client_addr.ip().to_string(),
-        model: context.request.map(|item| item.model.clone()),
+        model: context
+            .request
+            .map(|item| item.model.clone())
+            .or_else(|| context.model_hint.clone()),
         stream: context.request.map(|item| item.stream).unwrap_or(false),
         upstream_source: context.upstream.map(|item| item.source_label.clone()),
         region: context.upstream.map(|item| item.region.clone()),
@@ -801,6 +982,7 @@ fn write_request_log(
         output_tokens,
         cache_read_input_tokens,
         cache_creation_input_tokens,
+        error_type: error_type.map(str::to_string),
     };
     let _ = append_gateway_request_log(&entry);
 }
@@ -843,6 +1025,21 @@ async fn gateway_error_with_log(
     error: GatewayErrorDetails<'_>,
 ) -> Response {
     *state.last_error.lock().await = Some(error.message.to_string());
+
+    // 尝试从错误响应体中提取token信息
+    let (input_tokens, output_tokens, cache_read, cache_creation) = error.response_body
+        .and_then(|body| serde_json::from_str::<serde_json::Value>(body).ok())
+        .and_then(|json| {
+            let usage = json.get("usage")?;
+            Some((
+                usage.get("input_tokens").and_then(|v| v.as_i64()).map(|v| v as i32),
+                usage.get("output_tokens").and_then(|v| v.as_i64()).map(|v| v as i32),
+                usage.get("cache_read_input_tokens").and_then(|v| v.as_i64()).map(|v| v as i32),
+                usage.get("cache_creation_input_tokens").and_then(|v| v.as_i64()).map(|v| v as i32),
+            ))
+        })
+        .unwrap_or((None, None, None, None));
+
     let logged_response_body = error.response_body.map(str::to_string).or_else(|| {
         Some(serialize_logged_value(&build_gateway_error_body(
             format,
@@ -856,11 +1053,12 @@ async fn gateway_error_with_log(
         error.status,
         "error",
         Some(error.message),
+        Some(error.error_type),
         logged_response_body.as_deref(),
-        None, // input_tokens
-        None, // output_tokens
-        None, // cache_read_input_tokens
-        None, // cache_creation_input_tokens
+        input_tokens,
+        output_tokens,
+        cache_read,
+        cache_creation,
     );
     gateway_error_response(format, error.status, error.error_type, error.message)
 }
@@ -878,6 +1076,7 @@ pub async fn proxy_handler(
     let endpoint = request_endpoint(format);
     let started_at = Instant::now();
     let raw_request_body = payload.to_string();
+    let model_hint = extract_model_from_payload(&raw_request_body);
     let base_log_context = RequestLogContext {
         request_index,
         endpoint,
@@ -886,6 +1085,7 @@ pub async fn proxy_handler(
         upstream: None,
         started_at,
         request_body: Some(raw_request_body.as_str()),
+        model_hint,
     };
 
     if state.config.local_only && !client_addr.ip().is_loopback() {
@@ -956,7 +1156,15 @@ pub async fn proxy_handler(
             .await;
         }
     };
-    let request = if matches!(format, ResponseFormat::Responses) {
+
+    // 添加日志：记录原始请求中的 stream 字段
+    log::info!(
+        "[请求解析] 请求 #{} | 原始 payload 中的 stream={:?} | 解析后的 request.stream={}",
+        request_index,
+        payload.get("stream"),
+        request.stream
+    );
+    let mut request = if matches!(format, ResponseFormat::Responses) {
         let mut resumed = request.clone();
         resumed.messages = restore_responses_session_messages(&state, &request).await;
         // 如果当前请求没有 tools/tool_choice，从历史 session 继承
@@ -975,6 +1183,107 @@ pub async fn proxy_handler(
         request
     };
 
+    // Token 估算和裁剪（在创建 log context 之前）
+    let cache_key = format!("{:?}", request.messages);
+    let estimated_tokens = {
+        let mut cache = state.token_cache.lock().await;
+        if let Some(tokens) = cache.get(&cache_key) {
+            tokens
+        } else {
+            drop(cache);
+            let tokens = estimate_request_tokens(&request.messages, &request.model);
+            let mut cache = state.token_cache.lock().await;
+            cache.insert(cache_key, tokens);
+            tokens
+        }
+    };
+
+    // 从可用模型列表中获取该模型的 maxInputTokens
+    let max_input_tokens = get_model_max_input_tokens(&request.model).await;
+    let threshold_tokens = (max_input_tokens as f64 * SUMMARIZATION_THRESHOLD_PERCENT) as usize;
+
+    if estimated_tokens > threshold_tokens {
+        log::warn!(
+            "[网关] Token 数量 {} 超过阈值 {} ({}的95%)。检查当前消息是否过大...",
+            estimated_tokens,
+            threshold_tokens,
+            max_input_tokens
+        );
+
+        // 检查最后一条用户消息本身是否就超过阈值
+        if let Some(last_user_msg) = request.messages.iter().rev().find(|msg| msg.role == "user") {
+            let last_msg_tokens = estimate_request_tokens(&[last_user_msg.clone()], &request.model);
+            if last_msg_tokens > threshold_tokens {
+                // 当前消息本身就太大，无法裁剪
+                let error_message = format!(
+                    "Your current message is too long ({} tokens, exceeds {} tokens threshold). Please shorten your message and try again. Maximum input: {} tokens.",
+                    last_msg_tokens,
+                    threshold_tokens,
+                    max_input_tokens
+                );
+                let temp_log_context = RequestLogContext {
+                    request: Some(&request),
+                    ..base_log_context.clone()
+                };
+                return gateway_error_with_log(
+                    &state,
+                    format,
+                    &temp_log_context,
+                    GatewayErrorDetails {
+                        status: StatusCode::BAD_REQUEST,
+                        error_type: "invalid_request_error",
+                        message: &error_message,
+                        response_body: None,
+                    },
+                )
+                .await;
+            }
+        }
+
+        // 尝试裁剪历史消息到 70% 的安全水平
+        let target_tokens = (max_input_tokens as f64 * 0.70) as usize;
+        let trimmed = trim_messages_by_tokens(
+            &mut request.messages,
+            target_tokens,
+            &request.model
+        );
+
+        if trimmed {
+            let new_token_count = estimate_request_tokens(&request.messages, &request.model);
+            log::info!(
+                "[网关] 成功裁剪消息，从 {} tokens 到 {} tokens",
+                estimated_tokens,
+                new_token_count
+            );
+        } else {
+            // 裁剪失败（消息太少或无法继续裁剪），返回错误
+            let error_message = format!(
+                "Input is too long. Estimated {} tokens exceeds the threshold of {} tokens (95% of {}). Unable to trim further (minimum message count reached).",
+                estimated_tokens,
+                threshold_tokens,
+                max_input_tokens
+            );
+            // 临时创建 log context 用于错误记录
+            let temp_log_context = RequestLogContext {
+                request: Some(&request),
+                ..base_log_context.clone()
+            };
+            return gateway_error_with_log(
+                &state,
+                format,
+                &temp_log_context,
+                GatewayErrorDetails {
+                    status: StatusCode::BAD_REQUEST,
+                    error_type: "invalid_request_error",
+                    message: &error_message,
+                    response_body: None,
+                },
+            )
+            .await;
+        }
+    }
+
+    // 裁剪完成后，创建 log context
     let request_log_context = RequestLogContext {
         request: Some(&request),
         ..base_log_context.clone()
@@ -1042,6 +1351,7 @@ pub async fn proxy_handler(
                 StatusCode::OK,
                 "success",
                 None,
+                None, // error_type
                 Some(response_body.as_str()),
                 Some(outcome.aggregated.input_tokens),
                 Some(outcome.aggregated.output_tokens),
@@ -1102,6 +1412,7 @@ pub async fn proxy_handler(
             StatusCode::OK,
             "success",
             None,
+            None, // error_type
             Some(response_body.as_str()),
             Some(outcome.aggregated.input_tokens),
             Some(outcome.aggregated.output_tokens),
@@ -1109,57 +1420,6 @@ pub async fn proxy_handler(
             outcome.aggregated.cache_creation_input_tokens,
         );
         return Json(response).into_response();
-    }
-
-    // 【第一层防护】Token 预估（硬限制，带缓存）
-    // 基于 Kiro IDE 的 80% 总结阈值
-    // Kiro IDE 在 80% 时触发 Truncation Summarization，网关无法实现，所以直接拒绝
-
-    // 生成缓存 key：messages 的 JSON 序列化 + model_id
-    let cache_key = format!("{}:{}",
-        serde_json::to_string(&request.messages).unwrap_or_default(),
-        request.model
-    );
-
-    // 尝试从缓存获取
-    let estimated_tokens = {
-        let mut cache = state.token_cache.lock().await;
-        cache.get(&cache_key)
-    };
-
-    // 如果缓存未命中，计算并存入缓存
-    let estimated_tokens = if let Some(tokens) = estimated_tokens {
-        tokens
-    } else {
-        let tokens = estimate_request_tokens(&request.messages, &request.model);
-        let mut cache = state.token_cache.lock().await;
-        cache.insert(cache_key, tokens);
-        tokens
-    };
-    
-    // 从可用模型列表中获取该模型的 maxInputTokens
-    let max_input_tokens = get_model_max_input_tokens(&request.model).await;
-    let threshold_tokens = (max_input_tokens as f64 * SUMMARIZATION_THRESHOLD_PERCENT) as usize;
-    
-    if estimated_tokens > threshold_tokens {
-        let error_message = format!(
-            "Input is too long. Estimated {} tokens exceeds the summarization threshold of {} tokens (80% of {}). Please reduce the size of your messages or start a new conversation.",
-            estimated_tokens,
-            threshold_tokens,
-            max_input_tokens
-        );
-        return gateway_error_with_log(
-            &state,
-            format,
-            &upstream_log_context,
-            GatewayErrorDetails {
-                status: StatusCode::BAD_REQUEST,
-                error_type: "invalid_request_error",
-                message: &error_message,
-                response_body: None,
-            },
-        )
-        .await;
     }
 
     // 获取账号可用模型列表（用于模型降级）
@@ -1216,7 +1476,7 @@ pub async fn proxy_handler(
     let original_size = check_payload_size(&payload_value);
     if original_size > MAX_KIRO_PAYLOAD_SIZE {
         log::info!(
-            "[Gateway] Payload size {} bytes exceeds limit {} bytes. Trimming history...",
+            "[网关] Payload 大小 {} 字节超过限制 {} 字节。裁剪历史记录...",
             original_size,
             MAX_KIRO_PAYLOAD_SIZE
         );
@@ -1224,7 +1484,7 @@ pub async fn proxy_handler(
         if trimmed {
             let final_size = check_payload_size(&payload_value);
             log::info!(
-                "[Gateway] Payload trimmed from {} bytes to {} bytes",
+                "[网关] Payload 从 {} 字节裁剪到 {} 字节",
                 original_size,
                 final_size
             );
@@ -1366,6 +1626,7 @@ pub async fn proxy_handler(
             upstream: None, // 不持有引用
             started_at: upstream_payload_log_context.started_at,
             request_body: None,
+            model_hint: upstream_payload_log_context.model_hint.clone(),
         };
 
         return stream_proxy_response(
@@ -1382,8 +1643,9 @@ pub async fn proxy_handler(
         );
     }
 
-    let body = match upstream_resp.text().await {
-        Ok(body) => body,
+    // 非流式响应也是 EventStream 格式，需要解码
+    let raw_bytes = match upstream_resp.bytes().await {
+        Ok(bytes) => bytes,
         Err(error) => {
             let message = sanitize_error(&format!("读取上游响应失败: {error}"));
             return gateway_error_with_log(
@@ -1401,22 +1663,155 @@ pub async fn proxy_handler(
         }
     };
 
-    if let Some((status, error_type, message)) = detect_upstream_error_body(&body) {
-        return gateway_error_with_log(
-            &state,
-            format,
-            &upstream_payload_log_context,
-            GatewayErrorDetails {
-                status,
-                error_type,
-                message: &message,
-                response_body: Some(body.as_str()),
-            },
-        )
-        .await;
+    // 添加调试日志：记录原始响应体大小和前几个字节
+    log::info!(
+        "[非流式响应] 原始字节大小: {} 字节, 前 100 字节: {:?}",
+        raw_bytes.len(),
+        &raw_bytes[..raw_bytes.len().min(100)]
+    );
+
+    // 调试：将原始响应体写入文件（无论是否 Debug 模式）
+    {
+        use std::fs;
+        use std::path::PathBuf;
+        let debug_dir = PathBuf::from("debug_responses");
+        if !debug_dir.exists() {
+            let _ = fs::create_dir_all(&debug_dir);
+        }
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let debug_file = debug_dir.join(format!("response_{}.bin", timestamp));
+        if let Err(e) = fs::write(&debug_file, &raw_bytes) {
+            log::error!("写入调试响应文件失败: {}", e);
+        } else {
+            log::info!("✅ 调试响应已写入: {:?}", debug_file);
+        }
     }
 
-    let aggregated = aggregate_kiro_response(&body);
+    // 解码 EventStream 消息并提取所有 JSON payload
+    let mut buffer = raw_bytes.to_vec();
+    let mut json_payloads = Vec::new();
+    let mut message_count = 0;
+
+    loop {
+        match decode_message(&buffer) {
+            Ok(Some((msg, consumed_bytes))) => {
+                message_count += 1;
+                let message_type = msg.headers.get(":message-type").map(String::as_str);
+                let event_type = msg.headers.get(":event-type").map(String::as_str);
+
+                log::info!(
+                    "[非流式响应] 消息 #{}: type={:?}, event={:?}, payload_size={} 字节",
+                    message_count,
+                    message_type,
+                    event_type,
+                    msg.payload.len()
+                );
+
+                // 检查错误消息
+                if matches!(message_type, Some("error") | Some("exception")) {
+                    let error_text = String::from_utf8_lossy(&msg.payload);
+                    log::error!(
+                        "EventStream 上游错误: message_type={:?}, event_type={:?}, payload={}",
+                        message_type,
+                        event_type,
+                        error_text
+                    );
+
+                    if let Some((status, error_type, message)) = detect_upstream_error_body(&error_text) {
+                        return gateway_error_with_log(
+                            &state,
+                            format,
+                            &upstream_payload_log_context,
+                            GatewayErrorDetails {
+                                status,
+                                error_type,
+                                message: &message,
+                                response_body: Some(&error_text),
+                            },
+                        )
+                        .await;
+                    }
+                }
+
+                // 只处理事件类型的消息
+                if matches!(message_type, Some("event")) {
+                    let json_text = String::from_utf8_lossy(&msg.payload);
+                    log::info!(
+                        "[Non-Stream Response] Event payload: {}",
+                        json_text.chars().take(500).collect::<String>()
+                    );
+                    json_payloads.push(json_text.to_string());
+                }
+
+                buffer.drain(..consumed_bytes);
+            }
+            Ok(None) => {
+                // 缓冲区数据不足，已处理完所有消息
+                log::info!(
+                    "[非流式响应] EventStream 解码完成，剩余缓冲区: {} 字节", buffer.len());
+                break;
+            }
+            Err(e) => {
+                log::error!("EventStream 解码失败: {}, 剩余缓冲区: {} 字节", e, buffer.len());
+                break;
+            }
+        }
+    }
+
+    // 将所有 JSON payload 拼接成一个字符串用于聚合解析
+    let body = json_payloads.join("");
+
+    // 调试：将解析出的 JSON 写入文件（无论是否 Debug 模式）
+    {
+        use std::fs;
+        use std::path::PathBuf;
+        let debug_dir = PathBuf::from("debug_responses");
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let json_file = debug_dir.join(format!("parsed_{}.json", timestamp));
+        if let Err(e) = fs::write(&json_file, &body) {
+            log::error!("写入解析后的 JSON 文件失败: {}", e);
+        } else {
+            log::info!("✅ 解析后的 JSON 已写入: {:?}", json_file);
+        }
+    }
+
+    // 添加调试日志：记录解码后的 JSON 数量和预览
+    log::info!(
+        "[非流式响应] 解码了 {} 条 EventStream 消息, 总 body 长度: {} 字符, body 预览: {}",
+        json_payloads.len(),
+        body.len(),
+        body.chars().take(1000).collect::<String>()
+    );
+
+    let mut aggregated = aggregate_kiro_response(&body);
+
+    // 直接使用本地估算 token（不依赖响应中的 token 信息）
+    log::info!("[非流式响应] 使用本地 token 估算");
+
+    // 估算输入 tokens（从请求消息中）
+    let request_text = serde_json::to_string(&request.messages).unwrap_or_default();
+    aggregated.input_tokens = super::token_estimator::estimate_tokens(&request_text, &request.model);
+
+    // 估算输出 tokens（从响应文本中）
+    let response_text = format!("{}{}", aggregated.text, aggregated.thinking);
+    aggregated.output_tokens = super::token_estimator::estimate_tokens(&response_text, &request.model);
+
+    log::info!(
+        "[非流式响应] 估算的 tokens: input={}, output={} (model={})",
+        aggregated.input_tokens,
+        aggregated.output_tokens,
+        request.model
+    );
+
+    // 调试：记录 aggregated 的详细信息
+    log::info!(
+        "[非流式响应] 聚合详情: text_len={}, thinking_len={}, tool_calls={}, citations={}",
+        aggregated.text.len(),
+        aggregated.thinking.len(),
+        aggregated.tool_calls.len(),
+        aggregated.citations.len()
+    );
+
     let response = match format {
         ResponseFormat::Anthropic => build_anthropic_response(&request.model, &aggregated, &[]),
         ResponseFormat::Responses => build_responses_response_with_ids(
@@ -1450,6 +1845,7 @@ pub async fn proxy_handler(
         StatusCode::OK,
         "success",
         None,
+        None, // error_type
         Some(body.as_str()),
         Some(aggregated.input_tokens),
         Some(aggregated.output_tokens),
@@ -1470,6 +1866,7 @@ pub async fn mcp_proxy_handler(
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let started_at = Instant::now();
     let raw_request_body = payload.to_string();
+    let model_hint = extract_model_from_payload(&raw_request_body);
     let base_log_context = RequestLogContext {
         request_index,
         endpoint: "mcp",
@@ -1478,6 +1875,7 @@ pub async fn mcp_proxy_handler(
         upstream: None,
         started_at,
         request_body: Some(raw_request_body.as_str()),
+        model_hint,
     };
 
     if state.config.local_only && !client_addr.ip().is_loopback() {
@@ -1634,49 +2032,49 @@ pub async fn mcp_proxy_handler(
     let logged_response_body = String::from_utf8_lossy(&body).to_string();
     
     // 🔍 详细日志：记录完整的 MCP 响应（用于调试 SENSITIVE_STRING 问题）
-    log::info!("[MCP Proxy] ========== MCP 响应详情 ==========");
-    log::info!("[MCP Proxy] 请求方法: {}", payload.get("method").and_then(|v| v.as_str()).unwrap_or("unknown"));
-    log::info!("[MCP Proxy] 响应状态: {}", status);
-    log::info!("[MCP Proxy] 响应大小: {} bytes", body.len());
+    log::info!("[MCP 代理] ========== MCP 响应详情 ==========");
+    log::info!("[MCP 代理] 请求方法: {}", payload.get("method").and_then(|v| v.as_str()).unwrap_or("unknown"));
+    log::info!("[MCP 代理] 响应状态: {}", status);
+    log::info!("[MCP 代理] 响应大小: {} 字节", body.len());
     
     // 尝试解析 JSON 并美化输出
     if let Ok(json_value) = serde_json::from_str::<Value>(&logged_response_body) {
         // 检查是否是 tools/list 响应
         if let Some(result) = json_value.get("result") {
             if let Some(tools) = result.get("tools").and_then(|v| v.as_array()) {
-                log::info!("[MCP Proxy] ✅ 成功解析 tools/list 响应");
-                log::info!("[MCP Proxy] 工具数量: {}", tools.len());
-                log::info!("[MCP Proxy] 工具列表:");
+                log::info!("[MCP 代理] ✅ 成功解析 tools/list 响应");
+                log::info!("[MCP 代理] 工具数量: {}", tools.len());
+                log::info!("[MCP 代理] 工具列表:");
                 for (idx, tool) in tools.iter().enumerate().take(5) {
                     if let Some(name) = tool.get("name").and_then(|v| v.as_str()) {
-                        log::info!("[MCP Proxy]   {}. {}", idx + 1, name);
+                        log::info!("[MCP 代理]   {}. {}", idx + 1, name);
                     }
                 }
                 if tools.len() > 5 {
-                    log::info!("[MCP Proxy]   ... 还有 {} 个工具", tools.len() - 5);
+                    log::info!("[MCP 代理]   ... 还有 {} 个工具", tools.len() - 5);
                 }
             } else {
-                log::info!("[MCP Proxy] 响应 result 字段: {}", serde_json::to_string_pretty(result).unwrap_or_else(|_| "无法序列化".to_string()));
+                log::info!("[MCP 代理] 响应 result 字段: {}", serde_json::to_string_pretty(result).unwrap_or_else(|_| "无法序列化".to_string()));
             }
         }
         
         // 输出完整响应（美化格式）
-        log::debug!("[MCP Proxy] 完整响应 JSON:\n{}", serde_json::to_string_pretty(&json_value).unwrap_or_else(|_| logged_response_body.clone()));
+        log::debug!("[MCP 代理] 完整响应 JSON:\n{}", serde_json::to_string_pretty(&json_value).unwrap_or_else(|_| logged_response_body.clone()));
     } else {
         // 非 JSON 响应，输出原始内容
-        log::warn!("[MCP Proxy] ⚠️  响应不是有效的 JSON");
-        log::debug!("[MCP Proxy] 原始响应: {}", logged_response_body.chars().take(1000).collect::<String>());
+        log::warn!("[MCP 代理] ⚠️  响应不是有效的 JSON");
+        log::debug!("[MCP 代理] 原始响应: {}", logged_response_body.chars().take(1000).collect::<String>());
     }
-    
-    log::info!("[MCP Proxy] ========================================");
-    
+
+    log::info!("[MCP 代理] ========================================");
     write_request_log(
         &upstream_log_context,
         status,
         "success",
         None,
+        None, // error_type
         Some(logged_response_body.as_str()),
-        None, // input_tokens - MCP 代理无 tokens
+        None, // input_tokens
         None, // output_tokens
         None, // cache_read_input_tokens
         None, // cache_creation_input_tokens
@@ -1751,14 +2149,97 @@ async fn execute_request_with_server_tools(
         let upstream_resp = send_generate_request(&state.http, upstream, &upstream_payload)
             .await
             .map_err(|(status, error_type, message, _)| (status, error_type, message))?;
-        let body = upstream_resp.text().await.map_err(|error| {
+
+        // 解码 EventStream 响应
+        let raw_bytes = upstream_resp.bytes().await.map_err(|error| {
             (
                 StatusCode::BAD_GATEWAY,
                 "api_error",
                 sanitize_error(&format!("读取上游响应失败: {error}")),
             )
         })?;
-        let aggregated = aggregate_kiro_response(&body);
+
+        log::info!(
+            "[网络搜索响应] 原始字节大小: {} 字节",
+            raw_bytes.len()
+        );
+
+        let mut buffer = raw_bytes.to_vec();
+        let mut json_payloads = Vec::new();
+        let mut message_count = 0;
+
+        loop {
+            match decode_message(&buffer) {
+                Ok(Some((msg, consumed_bytes))) => {
+                    message_count += 1;
+                    let message_type = msg.headers.get(":message-type").map(String::as_str);
+
+                    log::info!(
+                        "[网络搜索响应] 消息 #{}: type={:?}, payload_size={} 字节",
+                        message_count,
+                        message_type,
+                        msg.payload.len()
+                    );
+
+                    if matches!(message_type, Some("error") | Some("exception")) {
+                        let error_text = String::from_utf8_lossy(&msg.payload);
+                        log::error!("EventStream 上游错误 (web_search): {}", error_text);
+                        return Err((
+                            StatusCode::BAD_GATEWAY,
+                            "api_error",
+                            sanitize_error(&error_text),
+                        ));
+                    }
+
+                    if matches!(message_type, Some("event")) {
+                        let json_text = String::from_utf8_lossy(&msg.payload);
+                        log::info!(
+                            "[网络搜索响应] Event payload 预览: {}",
+                            json_text.chars().take(200).collect::<String>()
+                        );
+                        json_payloads.push(json_text.to_string());
+                    }
+
+                    buffer.drain(..consumed_bytes);
+                }
+                Ok(None) => {
+                    log::info!("[网络搜索响应] EventStream 解码完成");
+                    break;
+                }
+                Err(e) => {
+                    log::error!("EventStream 解码失败 (web_search): {}", e);
+                    break;
+                }
+            }
+        }
+
+        let body = json_payloads.join("");
+        log::info!(
+            "[网络搜索响应] 解码了 {} 条消息, body 长度: {} 字符",
+            json_payloads.len(),
+            body.len()
+        );
+
+        let mut aggregated = aggregate_kiro_response(&body);
+
+        // 直接使用本地估算 token（不依赖响应中的 token 信息）
+        log::info!("[网络搜索响应] 使用本地 token 估算");
+
+        // 估算输入 tokens（从请求消息中）
+        let request_text = serde_json::to_string(&working_request.messages).unwrap_or_default();
+        aggregated.input_tokens = super::token_estimator::estimate_tokens(&request_text, &working_request.model);
+
+        // 估算输出 tokens（从响应文本中）
+        let response_text = format!("{}{}", aggregated.text, aggregated.thinking);
+        aggregated.output_tokens = super::token_estimator::estimate_tokens(&response_text, &working_request.model);
+
+        log::info!(
+            "[网络搜索响应] 估算的 tokens: input={}, output={} (model={})",
+            aggregated.input_tokens,
+            aggregated.output_tokens,
+            working_request.model
+        );
+
         let web_search_calls: Vec<(String, String, String)> = aggregated
             .tool_calls
             .iter()
@@ -1866,16 +2347,23 @@ async fn send_generate_request<T: serde::Serialize + ?Sized>(
         }
 
         let body = upstream_resp.text().await.unwrap_or_default();
-        
-        // 429 错误不重试，直接返回（让外层切换账号）
+
+        // 429 限流错误不重试，直接返回
         if status == StatusCode::TOO_MANY_REQUESTS {
             let (mapped_status, error_type, message) = map_upstream_error(status, &body);
             return Err((mapped_status, error_type, message, Some(body)));
         }
-        
-        // 其他错误（403、5xx）才重试
-        let should_retry = attempt < MAX_RETRIES
-            && (status == StatusCode::FORBIDDEN || status.is_server_error());
+
+        // 403 认证错误：直接返回，不在这里重试
+        // 外层会通过LoadBalancer切换账号或刷新token
+        if status == StatusCode::FORBIDDEN {
+            log::warn!("[网关] 上游认证失败 (403)，返回错误");
+            let (mapped_status, error_type, message) = map_upstream_error(status, &body);
+            return Err((mapped_status, error_type, message, Some(body)));
+        }
+
+        // 5xx 服务器错误才重试
+        let should_retry = attempt < MAX_RETRIES && status.is_server_error();
 
         if should_retry {
             let backoff_ms = 1000 * 2u64.pow(attempt - 1);
@@ -1954,7 +2442,7 @@ async fn call_mcp_tool(
         }
     });
 
-    log::debug!("[Gateway] MCP 工具调用请求: tool={}, arguments={}", tool_name, serde_json::to_string(&arguments).unwrap_or_default());
+    log::debug!("[网关] MCP 工具调用请求: tool={}, arguments={}", tool_name, serde_json::to_string(&arguments).unwrap_or_default());
 
     let response = with_kiro_upstream_headers(
         http.post(upstream_url),
@@ -1968,7 +2456,7 @@ async fn call_mcp_tool(
     .send()
     .await
     .map_err(|error| {
-        log::error!("[Gateway] MCP 上游请求失败: {}", error);
+        log::error!("[网关] MCP 上游请求失败: {}", error);
         (
             StatusCode::BAD_GATEWAY,
             "api_error",
@@ -1978,7 +2466,7 @@ async fn call_mcp_tool(
 
     let status = response.status();
     let body = response.text().await.map_err(|error| {
-        log::error!("[Gateway] 读取 MCP 上游响应失败: {}", error);
+        log::error!("[网关] 读取 MCP 上游响应失败: {}", error);
         (
             StatusCode::BAD_GATEWAY,
             "api_error",
@@ -1986,28 +2474,30 @@ async fn call_mcp_tool(
         )
     })?;
     
-    log::debug!("[Gateway] MCP 工具调用响应: status={}, body={}", status, body);
+    log::debug!("[网关] MCP 工具调用响应: status={}, body={}", status, body);
     
     if !status.is_success() {
         let (mapped_status, error_type, message) = map_upstream_error(status, &body);
-        log::error!("[Gateway] MCP 工具调用失败: status={}, error_type={}, message={}", mapped_status, error_type, message);
+        log::error!("[网关] MCP 工具调用失败: status={}, error_type={}, message={}", mapped_status, error_type, message);
         return Err((mapped_status, error_type, message));
     }
 
     let value: Value = serde_json::from_str(&body)
         .unwrap_or_else(|_| json!({ "result": { "content": [{ "type": "text", "text": body }] } }));
     if let Some(error) = value.get("error") {
-        let message = error
-            .get("message")
-            .and_then(Value::as_str)
-            .unwrap_or("MCP 工具调用失败")
-            .to_string();
-        log::error!("[Gateway] MCP 工具调用返回错误: {}", message);
-        return Err((
-            StatusCode::BAD_GATEWAY,
-            "api_error",
-            sanitize_error(&message),
-        ));
+        if !error.is_null() {
+            let message = error
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("MCP 工具调用失败")
+                .to_string();
+            log::error!("[网关] MCP 工具调用返回错误: {}", message);
+            return Err((
+                StatusCode::BAD_GATEWAY,
+                "api_error",
+                sanitize_error(&message),
+            ));
+        }
     }
 
     Ok(value.get("result").cloned().unwrap_or(value))
@@ -2376,6 +2866,8 @@ async fn resolve_managed_account_credentials(
 
             if let Some(usage_data) = &usage_data {
                 if usage_exceeds_threshold(usage_data, config.threshold) {
+                    // 记录失败，让 LoadBalancer 选择其他账号
+                    state.load_balancer.record_failure(&account.id).await;
                     return Err(format!(
                         "账号 {} 已达到阈值 {}%",
                         account.label, config.threshold
@@ -2424,11 +2916,9 @@ async fn resolve_managed_account_credentials(
         }
     }
 }
-
 fn format_managed_upstream_source(config: &GatewayConfig, account: &Account) -> String {
-    let account_label = if !account.label.trim().is_empty() {
-        account.label.trim().to_string()
-    } else if let Some(email) = account
+    // 只使用 email 或 user_id，都没有则返回 "unknown"
+    let account_label = if let Some(email) = account
         .email
         .as_ref()
         .filter(|value| !value.trim().is_empty())
@@ -2441,7 +2931,7 @@ fn format_managed_upstream_source(config: &GatewayConfig, account: &Account) -> 
     {
         user_id.trim().to_string()
     } else {
-        account.id.clone()
+        "unknown".to_string()
     };
 
     match config.account_mode.as_str() {
@@ -2541,32 +3031,7 @@ fn extract_usage_totals(usage_data: &Value) -> Option<(i64, i64)> {
     Some((current, limit))
 }
 
-fn extract_plain_text(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(text)) => text.clone(),
-        Some(Value::Array(items)) => items
-            .iter()
-            .filter_map(|item| {
-                item.get("text")
-                    .and_then(Value::as_str)
-                    .map(str::to_string)
-                    .or_else(|| {
-                        item.get("content")
-                            .and_then(Value::as_str)
-                            .map(str::to_string)
-                    })
-            })
-            .collect::<Vec<_>>()
-            .join("\n"),
-        Some(Value::Object(map)) => map
-            .get("text")
-            .and_then(Value::as_str)
-            .or_else(|| map.get("content").and_then(Value::as_str))
-            .unwrap_or_default()
-            .to_string(),
-        _ => String::new(),
-    }
-}
+
 
 fn slice_text_by_char_range(text: &str, start: usize, end: usize) -> Option<String> {
     if end < start {
@@ -2757,6 +3222,9 @@ fn build_anthropic_response(
         usage: AnthropicUsage {
             input_tokens: aggregated.input_tokens,
             output_tokens: aggregated.output_tokens,
+            cache_creation_input_tokens: aggregated.cache_creation_input_tokens,
+            cache_read_input_tokens: aggregated.cache_read_input_tokens,
+            server_tool_use: None,
         },
     })
     .unwrap_or_else(|_| json!({}))
@@ -3009,7 +3477,9 @@ fn build_responses_response_with_ids(
         "usage": {
             "input_tokens": aggregated.input_tokens,
             "output_tokens": aggregated.output_tokens,
-            "total_tokens": aggregated.input_tokens + aggregated.output_tokens
+            "total_tokens": aggregated.input_tokens + aggregated.output_tokens,
+            "cache_creation_input_tokens": aggregated.cache_creation_input_tokens,
+            "cache_read_input_tokens": aggregated.cache_read_input_tokens
         }
     })
 }
@@ -3086,6 +3556,17 @@ fn map_upstream_error(status: StatusCode, body: &str) -> (StatusCode, &'static s
     let sanitized = sanitize_error(&extract_error_message(body));
     let explicit_error_type = extract_error_type(body);
     let text = body.to_lowercase();
+
+    // 检测封禁错误（403 + AccessDeniedException + TemporarilySuspended）
+    let is_banned = status == StatusCode::FORBIDDEN
+        && body.contains("AccessDeniedException")
+        && body.contains("TemporarilySuspended");
+
+    // 检测token失效错误（403 + bearer token invalid/expired）
+    let is_token_invalid = status == StatusCode::FORBIDDEN
+        && (text.contains("bearer token") || text.contains("bearer_token"))
+        && (text.contains("invalid") || text.contains("expired"));
+
     let mapped_status = if status == StatusCode::BAD_GATEWAY || status == StatusCode::OK {
         if explicit_error_type == Some("authentication_error") {
             StatusCode::UNAUTHORIZED
@@ -3112,15 +3593,22 @@ fn map_upstream_error(status: StatusCode, body: &str) -> (StatusCode, &'static s
         status
     };
 
-    let error_type = explicit_error_type.unwrap_or(match mapped_status {
-        StatusCode::UNAUTHORIZED => "authentication_error",
-        StatusCode::FORBIDDEN => "permission_error",
-        StatusCode::TOO_MANY_REQUESTS => "rate_limit_error",
-        StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND | StatusCode::CONFLICT => {
-            "invalid_request_error"
-        }
-        _ => "api_error",
-    });
+    // 根据检测结果返回特殊的error_type
+    let error_type = if is_banned {
+        "account_banned_error"
+    } else if is_token_invalid {
+        "token_expired_error"
+    } else {
+        explicit_error_type.unwrap_or(match mapped_status {
+            StatusCode::UNAUTHORIZED => "authentication_error",
+            StatusCode::FORBIDDEN => "permission_error",
+            StatusCode::TOO_MANY_REQUESTS => "rate_limit_error",
+            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND | StatusCode::CONFLICT => {
+                "invalid_request_error"
+            }
+            _ => "api_error",
+        })
+    };
 
     (mapped_status, error_type, sanitized)
 }
@@ -3237,6 +3725,8 @@ fn stream_proxy_response(
         let mut parser = ThinkingParser::new();
         let mut aggregated = stream::AggregatedKiroResponse::default();
         let mut tool_accumulators: HashMap<String, (String, String)> = HashMap::new();
+        let mut input_tokens = 0i32;
+        let mut output_tokens = 0i32;
         let mut message_started = false;
         let mut next_block_index = 0usize;
         let mut text_block_index: Option<usize> = None;
@@ -3245,8 +3735,6 @@ fn stream_proxy_response(
         let mut openai_tool_call_indexes: HashMap<String, i32> = HashMap::new();
         let mut openai_next_tool_index = 0i32;
         let mut saw_tool_calls = false;
-        let mut input_tokens = 0i32;
-        let mut output_tokens = 0i32;
         let anthropic_id = format!("msg_{}", short_uuid());
         let response_id = format!("resp_{}", short_uuid());
         let message_id = format!("msg_{}", short_uuid());
@@ -3379,6 +3867,13 @@ fn stream_proxy_response(
                                             cache_read_input_tokens,
                                             cache_creation_input_tokens,
                                         } => {
+                                            log::info!(
+                                                "[Stream] ✅ Received Usage event: input={}, output={}, cache_read={:?}, cache_write={:?}",
+                                                input,
+                                                output,
+                                                cache_read_input_tokens,
+                                                cache_creation_input_tokens
+                                            );
                                             input_tokens = input;
                                             output_tokens = output;
                                             aggregated.input_tokens = input;
@@ -3417,6 +3912,8 @@ fn stream_proxy_response(
                                                 &mut thinking_block_index,
                                                 input_tokens,
                                                 output_tokens,
+                                                aggregated.cache_read_input_tokens,
+                                                aggregated.cache_creation_input_tokens,
                                             )
                                             .await;
                                         }
@@ -3439,6 +3936,8 @@ fn stream_proxy_response(
                                                     &mut thinking_block_index,
                                                     input_tokens,
                                                     output_tokens,
+                                                    aggregated.cache_read_input_tokens,
+                                                    aggregated.cache_creation_input_tokens,
                                                 )
                                                 .await;
                                             }
@@ -3455,8 +3954,10 @@ fn stream_proxy_response(
                                                         &mut message_started,
                                                         &anthropic_id,
                                                         &model,
-                                                        input_tokens,
-                                                        output_tokens,
+                                                        aggregated.input_tokens,
+                                                        aggregated.output_tokens,
+                                                        aggregated.cache_read_input_tokens,
+                                                        aggregated.cache_creation_input_tokens,
                                                     )
                                                     .await;
                                                     close_content_block(&tx, &mut text_block_index)
@@ -3695,8 +4196,10 @@ fn stream_proxy_response(
                                                         &mut message_started,
                                                         &anthropic_id,
                                                         &model,
-                                                        input_tokens,
-                                                        output_tokens,
+                                                        aggregated.input_tokens,
+                                                        aggregated.output_tokens,
+                                                        aggregated.cache_read_input_tokens,
+                                                        aggregated.cache_creation_input_tokens,
                                                     )
                                                     .await;
                                                     close_content_block(
@@ -3828,6 +4331,8 @@ fn stream_proxy_response(
                 &mut thinking_block_index,
                 input_tokens,
                 output_tokens,
+                aggregated.cache_read_input_tokens,
+                aggregated.cache_creation_input_tokens,
             )
             .await;
         }
@@ -3837,15 +4342,26 @@ fn stream_proxy_response(
             ResponseFormat::Anthropic => {
                 close_content_block(&tx, &mut text_block_index).await;
                 close_content_block(&tx, &mut thinking_block_index).await;
+                let mut usage = json!({
+                    "input_tokens": aggregated.input_tokens,
+                    "output_tokens": aggregated.output_tokens
+                });
+
+                // 添加 cache token 信息（如果存在）
+                if let Some(cache_read) = aggregated.cache_read_input_tokens {
+                    usage["cache_read_input_tokens"] = json!(cache_read);
+                }
+                if let Some(cache_creation) = aggregated.cache_creation_input_tokens {
+                    usage["cache_creation_input_tokens"] = json!(cache_creation);
+                }
+
                 let finish = json!({
                     "type": "message_delta",
                     "delta": {
                         "stop_reason": if saw_tool_calls { "tool_use" } else { "end_turn" },
                         "stop_sequence": Value::Null
                     },
-                    "usage": {
-                        "output_tokens": output_tokens
-                    }
+                    "usage": usage
                 });
                 send_event(&tx, Some("message_delta"), &finish.to_string()).await;
                 send_event(&tx, Some("message_stop"), "{\"type\":\"message_stop\"}").await;
@@ -3918,9 +4434,9 @@ fn stream_proxy_response(
                     },
                     Some(finish_reason.to_string()),
                     Some(crate::gateway::models::OpenAIChatUsage {
-                        prompt_tokens: input_tokens,
-                        completion_tokens: output_tokens,
-                        total_tokens: input_tokens + output_tokens,
+                        prompt_tokens: aggregated.input_tokens,
+                        completion_tokens: aggregated.output_tokens,
+                        total_tokens: aggregated.input_tokens + aggregated.output_tokens,
                     }),
                 );
                 let final_json = serde_json::to_string(&final_chunk).unwrap_or_default();
@@ -3929,13 +4445,31 @@ fn stream_proxy_response(
             }
         }
 
-        // 流式结束后记录完整的 tokens
+        // 流式结束后，使用本地估算 token
+        log::info!("[流式] 使用本地 token 估算");
+
+        // 估算输入 tokens（从请求消息中）
+        let request_text = serde_json::to_string(&request_messages).unwrap_or_default();
+        aggregated.input_tokens = super::token_estimator::estimate_tokens(&request_text, &model);
+
+        // 估算输出 tokens（从响应文本中）
+        let response_text = format!("{}{}", aggregated.text, aggregated.thinking);
+        aggregated.output_tokens = super::token_estimator::estimate_tokens(&response_text, &model);
+
+        log::info!(
+            "[Stream] Estimated tokens: input={}, output={} (model={})",
+            aggregated.input_tokens,
+            aggregated.output_tokens,
+            model
+        );
+
         write_request_log(
             &log_context,
             StatusCode::OK,
             "stream",
             None,
-            Some(STREAMING_RESPONSE_PLACEHOLDER),
+            None, // error_type
+            None,
             Some(aggregated.input_tokens),
             Some(aggregated.output_tokens),
             aggregated.cache_read_input_tokens,
@@ -3972,6 +4506,8 @@ async fn handle_stream_text(
     thinking_block_index: &mut Option<usize>,
     input_tokens: i32,
     output_tokens: i32,
+    cache_read_input_tokens: Option<i32>,
+    cache_creation_input_tokens: Option<i32>,
 ) {
     if text.is_empty() {
         return;
@@ -3986,6 +4522,8 @@ async fn handle_stream_text(
                 model,
                 input_tokens,
                 output_tokens,
+                cache_read_input_tokens,
+                cache_creation_input_tokens,
             )
             .await;
 
@@ -4085,10 +4623,26 @@ async fn ensure_anthropic_message_start(
     model: &str,
     input_tokens: i32,
     output_tokens: i32,
+    cache_read_input_tokens: Option<i32>,
+    cache_creation_input_tokens: Option<i32>,
 ) {
     if *message_started {
         return;
     }
+
+    let mut usage = json!({
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens
+    });
+
+    // 添加 cache token 信息（如果存在）
+    if let Some(cache_read) = cache_read_input_tokens {
+        usage["cache_read_input_tokens"] = json!(cache_read);
+    }
+    if let Some(cache_creation) = cache_creation_input_tokens {
+        usage["cache_creation_input_tokens"] = json!(cache_creation);
+    }
+
     let data = json!({
         "type": "message_start",
         "message": {
@@ -4099,10 +4653,7 @@ async fn ensure_anthropic_message_start(
             "model": model,
             "stop_reason": Value::Null,
             "stop_sequence": Value::Null,
-            "usage": {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens
-            }
+            "usage": usage
         }
     });
     send_event(tx, Some("message_start"), &data.to_string()).await;

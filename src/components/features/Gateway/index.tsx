@@ -1,14 +1,13 @@
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Activity, Play, RotateCcw, Square, Plug, Activity as ActivityIcon, Settings } from 'lucide-react'
+import { Activity, Play, RotateCcw, Square, Activity as ActivityIcon, Settings } from 'lucide-react'
 import { Alert as AlertPrimitive, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useApp } from '../../../hooks/useApp'
 import { Stack, Group, Badge, Card, Text } from '@/components/shared/layout'
 import GatewayConfigComponent from './GatewayConfig'
-import GatewayIntegration from './GatewayIntegration'
-import GatewayObservability from './GatewayObservability'
+import { GatewayObservability } from './GatewayObservability'
 import { getThemeAccent } from '../KiroConfig/themeAccent'
 import { GatewayConfig, GatewayStatus } from './gatewayPageState'
 import {
@@ -173,10 +172,7 @@ function GatewayPage() {
     () => buildGatewayRequestLogSummary(filteredRequestLogs),
     [filteredRequestLogs]
   )
-  const requestMetrics = useMemo(
-    () => buildGatewayMetricsSummary(filteredRequestLogs),
-    [filteredRequestLogs]
-  )
+
   const routingSummary = useMemo(
     () => buildGatewayRoutingSummary({
       config,
@@ -222,7 +218,7 @@ function GatewayPage() {
     {
       label: t('gateway.observationSamples'),
       value: `${requestLogSummary.total} ${t('gateway.requestCount')}`,
-      detail: `${t('gateway.successRate')} ${requestMetrics.successRateLabel} · ${t('gateway.errorRate')} ${requestMetrics.errorRateLabel}`},
+      detail: `${t('gateway.successRate')} ${requestLogSummary.successRateLabel} · ${t('gateway.errorRate')} ${requestLogSummary.errorRateLabel}`},
     {
       label: t('gateway.runtimeDifference'),
       value: hasRuntimeChanges ? t('gateway.needsRestart') : t('gateway.runtimeAligned'),
@@ -240,8 +236,8 @@ function GatewayPage() {
     latestErrorEntry,
     lastStatusSyncAt,
     requestLogSummary.total,
-    requestMetrics.successRateLabel,
-    requestMetrics.errorRateLabel,
+    filteredRequestLogSummary.success,
+    filteredRequestLogSummary.errors,
     hasRuntimeChanges,
     hasUnsavedChanges,
   ])
@@ -724,57 +720,16 @@ function GatewayPage() {
               <Settings size={16} />
               {t('gateway.config')}
             </TabsTrigger>
-            <TabsTrigger value="integration" className="flex items-center gap-2">
-              <Plug size={16} />
-              {t('gateway.integration')}
-            </TabsTrigger>
             <TabsTrigger value="observability" className="flex items-center gap-2">
               <ActivityIcon size={16} />
               {t('gateway.observability')}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="integration">
-            <GatewayIntegration
-              colors={colors}
-              integrationGuidance={integrationGuidance}
-              integrationSummary={integrationSummary}
-              effectiveConnectHost={effectiveConnectHost}
-              clientSamples={clientSamples}
-              copyText={copyText}
-              copySuccess={copySuccess}
-              effectiveConfig={effectiveConfig}
-              status={status}
-            />
-          </TabsContent>
-
           <TabsContent value="observability">
             <GatewayObservability
-              colors={colors}
-              effectiveConfig={effectiveConfig}
               status={status}
-              loading={loading}
               handleRefresh={handleRefresh}
-              handleClearErrors={handleClearErrors}
-              errorHistory={errorHistory}
-              statusSummary={statusSummary}
-              hasUnsavedChanges={hasUnsavedChanges}
-              filteredRequestLogSummary={filteredRequestLogSummary}
-              integrationSummary={integrationSummary}
-              logDir={logDir}
-              handleOpenLogDir={handleOpenLogDir}
-              loadRequestLogs={loadRequestLogs}
-              requestLogsLoading={requestLogsLoading}
-              handleClearRequestLogs={handleClearRequestLogs}
-              requestLogs={requestLogs}
-              lastRequestLogsSyncAt={lastRequestLogsSyncAt}
-              requestLogOutcome={requestLogOutcome}
-              setRequestLogOutcome={setRequestLogOutcome}
-              requestLogQuery={requestLogQuery}
-              setRequestLogQuery={setRequestLogQuery}
-              requestLogSummary={requestLogSummary}
-              requestMetrics={requestMetrics}
-              filteredRequestLogs={filteredRequestLogs}
             />
           </TabsContent>
 
